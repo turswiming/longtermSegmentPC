@@ -1,4 +1,14 @@
 ## Guess What Moves: Unsupervised Video and Image Segmentation by Anticipating Motion
+## reproduct report:
+
+this have been test in pytorch 2.6, python 3.12 and cuda 12 
+
+to install detectron2 from source, we need to use this command
+```bash
+pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
+``` 
+
+
 #### [Subhabrata Choudhury*](https://subhabratachoudhury.com/), [Laurynas Karazija*](https://karazijal.github.io), [Iro Laina](http://campar.in.tum.de/Main/IroLaina), [Andrea Vedaldi](https://www.robots.ox.ac.uk/~vedaldi/), [Christian Rupprecht](https://chrirupp.github.io/)
 ### [![ProjectPage](https://img.shields.io/badge/-Project%20Page-magenta.svg?style=for-the-badge&color=white&labelColor=magenta)](https://www.robots.ox.ac.uk/~vgg/research/gwm/) [![Conference](https://img.shields.io/badge/BMVC%20Spotlight-2022-purple.svg?style=for-the-badge&color=f1e3ff&labelColor=purple)](https://bmvc2022.org/programme/papers/#554-guess-what-moves-unsupervised-video-and-image-segmentation-by-anticipating-motion)    [![arXiv](https://img.shields.io/badge/arXiv-2205.07844-b31b1b.svg?style=for-the-badge&logo=arXiv)](https://arxiv.org/abs/2205.07844)
 

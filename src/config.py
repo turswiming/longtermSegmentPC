@@ -70,12 +70,12 @@ def setup_dataset(cfg=None, multi_val=False):
         img_dir = '/DAVIS2016/JPEGImages/480p'
         gt_dir = '/DAVIS2016/Annotations/480p'
 
-        val_flow_dir = '/DAVIS2016/Flows_gap1/1080p'
+        val_flow_dir = '/DAVIS2016/Flows_gap1/480p'
         val_seq = ['dog', 'cows', 'goat', 'camel', 'libby', 'parkour', 'soapbox', 'blackswan', 'bmx-trees',
                    'kite-surf', 'car-shadow', 'breakdance', 'dance-twirl', 'scooter-black', 'drift-chicane',
                    'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
-        res = "1080p"
+        res = "480p"
 
     elif cfg.GWM.DATASET in ['FBMS']:
         basepath = '/FBMS_clean'

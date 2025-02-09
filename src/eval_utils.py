@@ -30,7 +30,7 @@ def __default_font(fontsize):
 def autosized_default_font(size_limit: float) -> ImageFont.ImageFont:
     fontsize = 1  # starting font size
     font = __default_font(fontsize)
-    while font.getsize('test123')[1] < size_limit:
+    while font.getbbox('test123')[1] < size_limit:
         fontsize += 1
         font = __default_font(fontsize)
     fontsize -= 1
@@ -62,7 +62,8 @@ def get_vis_header(header_size, image_size, header_texts, header_height=20):
     for text in header_texts:
         im = Image.new("RGB", (W, H), "white")
         draw = ImageDraw.Draw(im)
-        w, h = draw.textsize(text, font=font)
+        bbox = draw.textbbox((0,0),text, font=font)
+        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
         draw.text(((W - w) / 2, (H - h) / 2), text, fill="black", font=font)
         header_labels.append(torch.from_numpy(np.array(im)))
     header_labels = torch.cat(header_labels, dim=1)
