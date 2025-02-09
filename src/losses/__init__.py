@@ -1,4 +1,5 @@
 from .reconstruction_loss import ReconstructionLoss
+from .opticalflow_loss import OpticalFlowLoss
 import torch
 
 
@@ -18,11 +19,22 @@ class CriterionDict:
         return loss, log_dict
 
     def flow_reconstruction(self, sample, flow, masks_softmaxed):
-        return self.criterions['reconstruction'][0].rec_flow(sample, flow, masks_softmaxed)
-
+        if 'reconstruction' in self.criterions:
+            return self.criterions['reconstruction'][0].rec_flow(sample, flow, masks_softmaxed)
+        if  'opticalflow' in self.criterions:
+            return self.criterions['opticalflow'][0].rec_flow(sample, flow, masks_softmaxed)
+        raise NotImplementedError
     def process_flow(self, sample, flow):
-        return self.criterions['reconstruction'][0].process_flow(sample, flow)
+        if 'reconstruction' in self.criterions:
+            return self.criterions['reconstruction'][0].process_flow(sample, flow)
+        if  'opticalflow' in self.criterions:
+            return self.criterions['opticalflow'][0].process_flow(sample, flow)
+        raise NotImplementedError
 
     def viz_flow(self, flow):
-        return self.criterions['reconstruction'][0].viz_flow(flow)
+        if 'reconstruction' in self.criterions:
+            return self.criterions['reconstruction'][0].viz_flow(flow)
+        if  'opticalflow' in self.criterions:
+            return self.criterions['opticalflow'][0].viz_flow(flow)
+        raise NotImplementedError
 

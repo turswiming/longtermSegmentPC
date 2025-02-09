@@ -72,7 +72,8 @@ def main(args):
     # sample = next(iter(loader))
 
     criterions = {
-        'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1)}
+        # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
+        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: 1),}
 
     criterion = losses.CriterionDict(criterions)
 
@@ -210,7 +211,7 @@ def main(args):
                     if cfg.WANDB.ENABLE:
                         wandb.log(train_log_dict, step=iteration + 1)
 
-                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [1, 50, 500]:
+                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [50, 500]:
                     model.eval()
                     if writer:
                         flow = torch.stack([x['flow'].to(model.device) for x in sample]).clip(-20, 20)

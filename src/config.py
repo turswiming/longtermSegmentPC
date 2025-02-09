@@ -333,6 +333,7 @@ def add_gwm_config(cfg):
 
     cfg.GWM.LOSS_MULT = CN()
     cfg.GWM.LOSS_MULT.REC = 0.03
+    cfg.GWM.LOSS_MULT.OPT = 0.03
     cfg.GWM.LOSS_MULT.HEIR_W = [0.1, 0.3, 0.6]
 
 
