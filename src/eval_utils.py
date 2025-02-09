@@ -181,13 +181,15 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
     if cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES > 2:
         merger = MaskMerger(cfg, model)
 
-    print_idxs = random.sample(range(len(val_loader)), k=10)
+    print_idxs = random.sample(range(int(len(val_loader)/10)), k=10)*10
 
     images_viz = []
     ious_davis_eval = defaultdict(list)
     ious = defaultdict(list)
 
     for idx, sample in enumerate(tqdm(val_loader)):
+        if idx%10 != 0:
+            continue
         t = 1
         sample = [e for s in sample for e in s]
         category = [s['category'] for s in sample]
@@ -258,9 +260,11 @@ class MaskMerger:
             return F.interpolate(feat, batch.shape[-2:], mode='bilinear')
 
     def spectral(self, A):
+        A_cpu = A.detach().cpu().numpy()
+        A_cpu = np.nan_to_num(A_cpu, nan=0.0) # replace NaNs with 0
         clustering = SpectralClustering(n_clusters=2,
                                         affinity='precomputed',
-                                        random_state=0).fit(A.detach().cpu().numpy())
+                                        random_state=0).fit(A.cpu())
         return np.arange(A.shape[-1])[clustering.labels_ == 0], np.arange(A.shape[-1])[clustering.labels_ == 1]
 
     def cos_merge(self, basis, masks):

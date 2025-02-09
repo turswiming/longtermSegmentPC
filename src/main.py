@@ -183,7 +183,9 @@ def main(args):
                 del log_dict
                 train_log_dict['train/learning_rate'] = optimizer.param_groups[-1]['lr']
                 train_log_dict['train/loss_total'] = loss.item()
-
+                for k, v in train_log_dict.items():
+                    if writer:
+                        writer.add_scalar(k, v, iteration + 1)
 
                 optimizer.zero_grad()
 
@@ -204,14 +206,12 @@ def main(args):
                     logger.info(
                         f'Iteration: {iteration + 1}, time: {time.time() - timestart:.01f}s, loss: {loss.item():.02f}.')
 
-                    for k, v in train_log_dict.items():
-                        if writer:
-                            writer.add_scalar(k, v, iteration + 1)
+
 
                     if cfg.WANDB.ENABLE:
                         wandb.log(train_log_dict, step=iteration + 1)
 
-                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [50, 500]:
+                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [1, 50, 500]:
                     model.eval()
                     if writer:
                         flow = torch.stack([x['flow'].to(model.device) for x in sample]).clip(-20, 20)
