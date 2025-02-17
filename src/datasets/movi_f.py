@@ -60,8 +60,10 @@ for dir_name in os.listdir(origin_path):
         if "forward_flow" in file_path:
             # Load the image
             image = Image.open(file_path)
-            # Convert the image to a tensor
-  
+            # deduct 127
+            image = np.array(image, dtype=np.float32) - 127.0
+            image = Image.fromarray(np.clip(image, 0, 255).astype(np.uint8))
+
             # Save the tensor as a .flo file
             if not os.path.exists(os.path.join(Flowdir1_save_dir,dir_name)):
                 os.makedirs(os.path.join(Flowdir1_save_dir,dir_name))
