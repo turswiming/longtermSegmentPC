@@ -22,7 +22,7 @@ import losses
 import utils
 from eval_utils import eval_unsupmf, get_unsup_image_viz, get_vis_header
 from mask_former_trainer import setup, Trainer
-
+from ourcheckpointer import OurCheckpointer
 
 logger = utils.log.getLogger('gwm')
 
@@ -53,7 +53,7 @@ def main(args):
     logger.info(f'Optimiser is {type(optimizer)}')
 
 
-    checkpointer = DetectionCheckpointer(model,
+    checkpointer = OurCheckpointer(model,
                                          save_dir=os.path.join(cfg.OUTPUT_DIR, 'checkpoints'),
                                          random_state=random_state,
                                          optimizer=optimizer,

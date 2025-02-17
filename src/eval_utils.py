@@ -188,7 +188,7 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
     ious = defaultdict(list)
 
     for idx, sample in enumerate(tqdm(val_loader)):
-        if idx%10 != 0:
+        if idx%10 != 0 and idx not in print_idxs:
             continue
         t = 1
         sample = [e for s in sample for e in s]
@@ -264,7 +264,7 @@ class MaskMerger:
         A_cpu = np.nan_to_num(A_cpu, nan=0.0) # replace NaNs with 0
         clustering = SpectralClustering(n_clusters=2,
                                         affinity='precomputed',
-                                        random_state=0).fit(A.cpu())
+                                        random_state=0).fit(A_cpu)
         return np.arange(A.shape[-1])[clustering.labels_ == 0], np.arange(A.shape[-1])[clustering.labels_ == 1]
 
     def cos_merge(self, basis, masks):

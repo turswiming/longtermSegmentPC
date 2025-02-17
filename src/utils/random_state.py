@@ -72,18 +72,27 @@ class PytorchRNGState(torch.nn.Module):
             state_dict[self.__CUDA_PRNG_STATE__] = cuda_state
         return state_dict
 
-    def load_state_dict(self, state_dict, strict=True):
+    def load_state_dict(self, state_dict, strict=False):
         random.setstate(state_dict.pop(self.__RANDOM_PRNG_STATE__))
         np.random.set_state(state_dict.pop(self.__NUMPY_PRNG_STATE__))
-        torch.set_rng_state(state_dict.pop(self.__TORCH_PRNG_STATE__))
+        torch_rng = state_dict.pop(self.__TORCH_PRNG_STATE__)
+        if not isinstance(torch_rng, torch.ByteTensor):
+            torch_rng = torch.ByteTensor(torch_rng.cpu())
+        torch.set_rng_state(torch_rng)
+        print("cuda", torch.cuda.is_available(), 'cuda' in str(self.device))
         LOGGER.debug(f'Restored state to python process and ')
         if strict:
-            if torch.cuda.is_available() and 'cuda' in str(self.device) and self.__CUDA_PRNG_STATE__ not in state_dict:
-                raise RuntimeError(f'Error in restoring CUDA PRNG state: state missing')
-            if self.__CUDA_PRNG_STATE__ in state_dict and (torch.cuda.is_available() or 'cuda' not in str(self.device)):
+            if torch.cuda.is_available() and 'cuda' in str(self.device):
+                if self.__CUDA_PRNG_STATE__ not in state_dict:
+                    raise RuntimeError(f'Error in restoring CUDA PRNG state: state missing')
+            elif self.__CUDA_PRNG_STATE__ in state_dict:
                 raise RuntimeError(f'Error in restoring CUDA PRNG state: CUDA not available')
-        if self.__CUDA_PRNG_STATE__ in state_dict and torch.cuda.is_available() and 'cuda' in str(self.device):
-            torch.cuda.set_rng_state(state_dict.pop(self.__CUDA_PRNG_STATE__), self.device)
+        
+        if torch.cuda.is_available() and 'cuda' in str(self.device) and self.__CUDA_PRNG_STATE__ in state_dict:
+            cuda_rng_state = state_dict.pop(self.__CUDA_PRNG_STATE__)
+            if not isinstance(cuda_rng_state, torch.ByteTensor):
+                cuda_rng_state = torch.ByteTensor(cuda_rng_state.cpu())
+            torch.cuda.set_rng_state(cuda_rng_state, self.device)
         return super(PytorchRNGState, self).load_state_dict(state_dict, strict)
 
 

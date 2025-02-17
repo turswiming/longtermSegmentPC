@@ -76,6 +76,16 @@ def setup_dataset(cfg=None, multi_val=False):
                    'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
+    if cfg.GWM.DATASET == "MOVI_F":
+        basepath = "/MOVI_F"
+        img_dir = "/MOVI_F/JPEGImages/480p"
+        gt_dir = "/MOVI_F/Annotations/480p"
+
+        val_flow_dir = "/MOVI_F/Flows_gap1/480p"
+        val_seq = ["0","1","2","3","4","5","6"] #todo 
+        val_data_dir = [val_flow_dir, img_dir, gt_dir]
+        res = "480p"
+
 
     elif cfg.GWM.DATASET in ['FBMS']:
         basepath = '/FBMS_clean'
@@ -145,6 +155,7 @@ def setup_dataset(cfg=None, multi_val=False):
                                       flow_clip=cfg.GWM.FLOW_CLIP,
                                       norm=cfg.GWM.FLOW_NORM,
                                       force1080p=force1080p,
+                                      read_big=False,
                                       flow_res=cfg.GWM.FLOW_RES, )
     if multi_val:
         print(f"Using multiple validation datasets from {val_data_dir}")
@@ -210,6 +221,7 @@ def setup_dataset(cfg=None, multi_val=False):
                                     val_seq=val_seq,
                                     to_rgb=cfg.GWM.FLOW2RGB,
                                     with_rgb=False,
+                                    read_big=False,
                                     size_divisibility=cfg.MODEL.MASK_FORMER.SIZE_DIVISIBILITY if not cfg.FLAGS.IGNORE_SIZE_DIV else -1,
                                     flow_clip=cfg.GWM.FLOW_CLIP,
                                     norm=cfg.GWM.FLOW_NORM,
@@ -315,7 +327,7 @@ def add_gwm_config(cfg):
     cfg.GWM.HOMOGRAPHY = 'quad'  # False
     cfg.GWM.HOMOGRAPHY_SUBSAMPLE = 8
     cfg.GWM.HOMOGRAPHY_SKIP = 0.4
-    cfg.GWM.DATASET = 'DAVIS'
+    cfg.GWM.DATASET = 'MOVI_F'
     cfg.GWM.DATA_ROOT = None
     cfg.GWM.FLOW2RGB = False
     cfg.GWM.SIMPLE_REC = False
