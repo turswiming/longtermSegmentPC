@@ -76,7 +76,7 @@ def setup_dataset(cfg=None, multi_val=False):
                    'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
-    if cfg.GWM.DATASET == "MOVI_F":
+    elif cfg.GWM.DATASET == "MOVI_F":
         basepath = "/MOVI_F"
         img_dir = "/MOVI_F/JPEGImages/480p"
         gt_dir = "/MOVI_F/Annotations/480p"
