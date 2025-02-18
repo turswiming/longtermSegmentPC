@@ -30,6 +30,11 @@ def read_flo(file):
     # Reshape data into 3D array (columns, rows, bands)
     flow = np.resize(data, (int(h), int(w), 2))
     f.close()
+    print("flow x max: ", np.max(flow[:, :, 0]))
+    print("flow x min: ", np.min(flow[:, :, 0]))
+    print("flow y max: ", np.max(flow[:, :, 1]))
+    print("flow y min: ", np.min(flow[:, :, 1]))
+    
     return flow
 
 
