@@ -38,8 +38,8 @@ def save_flo(image, filename):
 
 for dir_name in tqdm(os.listdir(origin_path)):
     dir_path = os.path.join(origin_path,dir_name)
-    if dir_name not in ["0","1"]:
-        continue
+    # if dir_name not in ["0","1"]:
+    #     continue
     for file in os.listdir(dir_path):
         file_path = os.path.join(dir_path,file)
         if "segmentation"   in file_path:

@@ -318,8 +318,8 @@ def multi_loaders(cfg):
 def add_gwm_config(cfg):
     cfg.GWM = CN()
     cfg.GWM.MODEL = "MASKFORMER"
-    cfg.GWM.RESOLUTION = (128, 224)
-    cfg.GWM.FLOW_RES = (480, 854)
+    cfg.GWM.RESOLUTION = (128, 128)
+    cfg.GWM.FLOW_RES = (128, 128)
     cfg.GWM.SAMPLE_KEYS = ["rgb"]
     cfg.GWM.ADD_POS_EMB = False
     cfg.GWM.CRITERION = "L2"
@@ -345,7 +345,7 @@ def add_gwm_config(cfg):
 
     cfg.GWM.LOSS_MULT = CN()
     cfg.GWM.LOSS_MULT.REC = 0.03
-    cfg.GWM.LOSS_MULT.OPT = 0.03
+    cfg.GWM.LOSS_MULT.OPT = 0.1
     cfg.GWM.LOSS_MULT.HEIR_W = [0.1, 0.3, 0.6]
 
 

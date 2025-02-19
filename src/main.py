@@ -225,7 +225,7 @@ def main(args):
 
                     if iou := eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion,
                                            writer=writer, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE):
-                        if cfg.SOLVER.CHECKPOINT_PERIOD and iou > iou_best:
+                        if cfg.SOLVER.CHECKPOINT_PERIOD:
                             iou_best = iou
                             if not args.wandb_sweep_mode:
                                 checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
