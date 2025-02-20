@@ -42,7 +42,6 @@ class OpticalFlowLoss:
         mask_softmaxed: shape (B, K, H, W) with K segments
         """
         return self.loss(sample, flow, mask_softmaxed, it, train=train)
-
     def loss(self, sample, flow, mask_softmaxed, it, train=True):
         """
         Computes the sum of the parametric reconstruction residuals over all segments.
@@ -69,6 +68,8 @@ class OpticalFlowLoss:
         total_loss = 0.0
         for k in range(K):
             mk = mask_softmaxed[:, k].view(B, -1, 1)  # (B, HW, 1)
+            #reverse softmax
+            mk = torch.log(mk + 1e-8)
             # Fk = Mk ⊙ F
             Fk = flow_flat * mk
             # Ek = Mk ⊙ coords
@@ -79,6 +80,7 @@ class OpticalFlowLoss:
             # Eᵀ_k Fk   shape: (B, 6, 2)
             Ek_t = Ek.transpose(1, 2)# (B, 6, HW)
             A = Ek_t.bmm(Ek)# (B, 6, 6)
+            A = A + 1e-6 * torch.eye(6, device=A.device).unsqueeze(0)
             b = Ek_t.bmm(Fk)# (B, 6, 2)
             theta_k = torch.linalg.pinv(A).bmm(b)# (B, 6, 2)
             #F̂k = Ek θ̂k
@@ -87,7 +89,7 @@ class OpticalFlowLoss:
             residual = (Fk - Fk_hat).reshape(B, -1, 2)
             seg_loss = self.criterion(residual, torch.zeros_like(residual))
             total_loss += seg_loss
-
+    
         total_loss = total_loss / K
         return total_loss
 

@@ -1,0 +1,13 @@
+_BASE_: maskformer_R50_bs16_160k_dino.yaml
+MODEL: 
+   META_ARCHITECTURE: "UNET"
+   UNET:
+    N_CHANNELS: 3
+    N_CLASSES: 8
+    BILINEAR: False
+GWM:
+  MODEL: "UNET"
+  LOSS_MULT:
+    REC: 0.03
+    OPT: 0.03
+    DIV: 0.000000001

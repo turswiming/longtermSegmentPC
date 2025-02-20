@@ -29,7 +29,7 @@ from config import add_gwm_config
 logger = logging.getLogger('gwm')
 
 
-class MaskformerTrainer(DefaultTrainer):
+class UnetTrainer(DefaultTrainer):
     """
     Extension of the Trainer class adapted to DETR.
     """
@@ -128,6 +128,16 @@ class MaskformerTrainer(DefaultTrainer):
             raise NotImplementedError(f"no optimizer type {optimizer_type}")
         if not cfg.SOLVER.CLIP_GRADIENTS.CLIP_TYPE == "full_model":
             optimizer = maybe_add_gradient_clipping(cfg, optimizer)
+        # optimizer_type = cfg.SOLVER.OPTIMIZER
+        # if optimizer_type =="SGD":
+        #     optimizer = torch.optim.SGD(model.parameters(), lr=cfg.SOLVER.BASE_LR, momentum=cfg.SOLVER.MOMENTUM)
+        # elif optimizer_type == "ADAMW":
+        #     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.SOLVER.BASE_LR)
+        # elif optimizer_type == "RMSProp":
+        #     optimizer = torch.optim.RMSprop(model.parameters(), lr=cfg.SOLVER.BASE_LR)
+        # else:
+        #     raise NotImplementedError(f"no optimizer type {optimizer_type}")
+        
         return optimizer
 
 
@@ -203,9 +213,9 @@ def setup(args):
     cfg = get_cfg()
     # for poly lr schedule
     add_deeplab_config(cfg)
-    if model == "MASKFORMER":
-        from mask_former import add_mask_former_config
-        add_mask_former_config(cfg)
+    if model == "UNET":
+        import unet.config
+        unet.config.add_unet_config(cfg)
     else:
         logger.error(f'Unknown Model: {model}. Exiting..')
         sys.exit(0)

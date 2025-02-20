@@ -21,7 +21,8 @@ import config
 import losses
 import utils
 from eval_utils import eval_unsupmf, get_unsup_image_viz, get_vis_header
-from mask_former_trainer import setup, Trainer
+from Unet_trainer import setup, UnetTrainer
+import mask_former
 from ourcheckpointer import OurCheckpointer
 
 logger = utils.log.getLogger('gwm')
@@ -46,9 +47,9 @@ def main(args):
         writer = None
 
     # initialize model
-    model = Trainer.build_model(cfg)
-    optimizer = Trainer.build_optimizer(cfg, model)
-    scheduler = Trainer.build_lr_scheduler(cfg, optimizer)
+    model = UnetTrainer.build_model(cfg)
+    optimizer = UnetTrainer.build_optimizer(cfg, model)
+    scheduler = UnetTrainer.build_lr_scheduler(cfg, optimizer)
 
     logger.info(f'Optimiser is {type(optimizer)}')
 
@@ -73,7 +74,9 @@ def main(args):
 
     criterions = {
         # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
-        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: 1),}
+        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: 1),
+        # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
+        }
 
     criterion = losses.CriterionDict(criterions)
 
@@ -250,7 +253,7 @@ def get_argparse_args():
     parser.add_argument('--resume_path', type=str, default=None)
     parser.add_argument('--use_wandb', dest='wandb_sweep_mode', action='store_true')  # for sweep
     parser.add_argument('--config-file', type=str,
-                        default='configs/maskformer/maskformer_R50_bs16_160k_dino.yaml')
+                        default='configs/maskformer/Unet.yaml')
     parser.add_argument('--eval_only', action='store_true')
     parser.add_argument(
         "opts",

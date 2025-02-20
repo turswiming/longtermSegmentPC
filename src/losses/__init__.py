@@ -1,5 +1,6 @@
 from .reconstruction_loss import ReconstructionLoss
 from .opticalflow_loss import OpticalFlowLoss
+from .diversity_loss import DiversityLoss
 import torch
 
 
