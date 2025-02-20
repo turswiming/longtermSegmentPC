@@ -68,8 +68,13 @@ class OpticalFlowLoss:
         total_loss = 0.0
         for k in range(K):
             mk = mask_softmaxed[:, k].view(B, -1, 1)  # (B, HW, 1)
-            #reverse softmax
-            mk = torch.log(mk + 1e-8)
+            #binary mask
+            def straight_through_binarize(x, threshold=0.5):
+                y = (x > threshold).float()  # forward pass (hard binarization)
+                # backward pass uses x's gradient
+                return y + (x - x.detach())
+            
+            mk = straight_through_binarize(mk)
             # Fk = Mk ⊙ F
             Fk = flow_flat * mk
             # Ek = Mk ⊙ coords

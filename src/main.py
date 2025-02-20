@@ -22,7 +22,7 @@ import losses
 import utils
 from eval_utils import eval_unsupmf, get_unsup_image_viz, get_vis_header
 from Unet_trainer import setup, UnetTrainer
-import mask_former
+from mask_former_trainer import MaskformerTrainer
 from ourcheckpointer import OurCheckpointer
 
 logger = utils.log.getLogger('gwm')
@@ -47,10 +47,16 @@ def main(args):
         writer = None
 
     # initialize model
-    model = UnetTrainer.build_model(cfg)
-    optimizer = UnetTrainer.build_optimizer(cfg, model)
-    scheduler = UnetTrainer.build_lr_scheduler(cfg, optimizer)
-
+    if cfg.MODEL.META_ARCHITECTURE == 'UNET':
+        model = UnetTrainer.build_model(cfg)
+        optimizer = UnetTrainer.build_optimizer(cfg, model)
+        scheduler = UnetTrainer.build_lr_scheduler(cfg, optimizer)
+    elif cfg.MODEL.META_ARCHITECTURE == 'MASKFORMER':
+        model = MaskformerTrainer.build_model(cfg)
+        optimizer = MaskformerTrainer.build_optimizer(cfg, model)
+        scheduler = MaskformerTrainer.build_lr_scheduler(cfg, optimizer)
+    else:
+        raise NotImplementedError(f"Unsupported meta architecture {cfg.MODEL.META_ARCHITECTURE}")
     logger.info(f'Optimiser is {type(optimizer)}')
 
 
