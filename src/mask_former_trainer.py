@@ -206,6 +206,9 @@ def setup(args):
     if model == "MASKFORMER":
         from mask_former import add_mask_former_config
         add_mask_former_config(cfg)
+    elif model == "UNET":
+        import unet.config
+        unet.config.add_unet_config(cfg)
     else:
         logger.error(f'Unknown Model: {model}. Exiting..')
         sys.exit(0)

@@ -21,8 +21,8 @@ import config
 import losses
 import utils
 from eval_utils import eval_unsupmf, get_unsup_image_viz, get_vis_header
-from Unet_trainer import setup, UnetTrainer
-from mask_former_trainer import MaskformerTrainer
+from Unet_trainer import UnetTrainer
+from mask_former_trainer import MaskformerTrainer,setup
 from ourcheckpointer import OurCheckpointer
 
 logger = utils.log.getLogger('gwm')
@@ -47,11 +47,12 @@ def main(args):
         writer = None
 
     # initialize model
-    if cfg.MODEL.META_ARCHITECTURE == 'UNET':
+    print(cfg.GWM.MODEL)
+    if cfg.GWM.MODEL == 'UNET':
         model = UnetTrainer.build_model(cfg)
         optimizer = UnetTrainer.build_optimizer(cfg, model)
         scheduler = UnetTrainer.build_lr_scheduler(cfg, optimizer)
-    elif cfg.MODEL.META_ARCHITECTURE == 'MASKFORMER':
+    elif cfg.GWM.MODEL == 'MASKFORMER':
         model = MaskformerTrainer.build_model(cfg)
         optimizer = MaskformerTrainer.build_optimizer(cfg, model)
         scheduler = MaskformerTrainer.build_lr_scheduler(cfg, optimizer)

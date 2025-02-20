@@ -74,7 +74,6 @@ class UNET(nn.Module):
         # features = self.backbone(images.tensor)
         B, C, H, W = images.tensor.shape
 
-        # x0 = self.attentionLayer(q, k, v)
         x1 = self.inc(images.tensor)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -85,7 +84,8 @@ class UNET(nn.Module):
         x = self.up2(x, x2)
         x = self.up1(x, x1)
         logits = self.outc(x)
-        outputs = logits
+        #print(logits.shape)
+        outputs = logits #/ logits.sum(dim=1, keepdim=True)
 
         if get_train:
             # mask classification target

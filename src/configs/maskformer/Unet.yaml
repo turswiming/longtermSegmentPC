@@ -4,7 +4,7 @@ MODEL:
    UNET:
     N_CHANNELS: 3
     N_CLASSES: 8
-    BILINEAR: False
+    BILINEAR: True
 GWM:
   MODEL: "UNET"
   LOSS_MULT:
