@@ -120,6 +120,10 @@ class UnetTrainer(DefaultTrainer):
             optimizer = maybe_add_full_model_gradient_clipping(torch.optim.AdamW)(
                 params, cfg.SOLVER.BASE_LR
             )
+        elif optimizer_type == "ADAM":
+            optimizer = maybe_add_full_model_gradient_clipping(torch.optim.Adam)(
+                params, cfg.SOLVER.BASE_LR
+            )
         elif optimizer_type == "RMSProp":
             optimizer = maybe_add_full_model_gradient_clipping(torch.optim.RMSprop)(
                 params, cfg.SOLVER.BASE_LR

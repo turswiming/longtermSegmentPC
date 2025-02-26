@@ -72,6 +72,24 @@ class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.normalize = SlotNormalization(out_channels)
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.normalize(x)
+        return x
+
+
+class SlotNormalization(nn.Module):
+    def __init__(self, num_slots):
+        super(SlotNormalization, self).__init__()
+        self.num_slots = num_slots
+        self.layernorm = nn.LayerNorm(num_slots)
 
     def forward(self, x):
-        return self.conv(x)
+        batch_size, num_slots, height, width = x.shape
+        x = x.view(batch_size, num_slots, -1)  # [batch_size, num_slots, height * width]
+        x = x.permute(0, 2, 1)
+        x = self.layernorm(x)  # LayerNorm 在最后一个维度（num_slots）上进行
+        x = x.permute(0, 2, 1)
+        x = x.view(batch_size, num_slots, height, width)
+        return x

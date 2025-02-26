@@ -84,7 +84,6 @@ class UNET(nn.Module):
         x = self.up2(x, x2)
         x = self.up1(x, x1)
         logits = self.outc(x)
-        #print(logits.shape)
         outputs = logits #/ logits.sum(dim=1, keepdim=True)
 
         if get_train:
@@ -157,10 +156,6 @@ class UNET(nn.Module):
         self.down2 = torch.utils.checkpoint(self.down2)
         self.down3 = torch.utils.checkpoint(self.down3)
         self.down4 = torch.utils.checkpoint(self.down4)
-        self.down5 = torch.utils.checkpoint(self.down5)
-        self.down6 = torch.utils.checkpoint(self.down6)
-        self.up6 = torch.utils.checkpoint(self.up6)
-        self.up5 = torch.utils.checkpoint(self.up5)
         self.up4 = torch.utils.checkpoint(self.up4)
         self.up3 = torch.utils.checkpoint(self.up3)
         self.up2 = torch.utils.checkpoint(self.up2)

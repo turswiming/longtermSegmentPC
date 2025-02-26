@@ -30,7 +30,7 @@ def read_flo(file):
     # Reshape data into 3D array (columns, rows, bands)
     flow = np.resize(data, (int(h), int(w), 2))
     f.close()
-
+    
     return flow
 
 

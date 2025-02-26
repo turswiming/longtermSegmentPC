@@ -58,39 +58,43 @@ class OpticalFlowLoss:
         #convert to (HW, 6)
         coords = coords.view(-1, 6)
         #convert to (B, HW, 6)
-        coords = coords.unsqueeze(0).repeat(B, 1, 1)
+        # coords = coords.unsqueeze(0).repeat(B, 1, 1)
         if self.cfg.GWM.FLOW_RES is not None:
             if flow.shape[-2:] != mask_softmaxed.shape[-2:]:
                 logger.debug_once(f'Resizing predicted masks to {self.cfg.GWM.FLOW_RES}')
                 mask_softmaxed = F.interpolate(mask_softmaxed, flow.shape[-2:], mode='bilinear', align_corners=False)
         # Flatten flow to shape (B, HW, 2)
         flow_flat = flow.view(B, 2, -1).transpose(1, 2)
-        mask_softmaxed = OneHotMaskSTE.apply(mask_softmaxed)
+        # mask_softmaxed = OneHotMaskSTE.apply(mask_softmaxed)
         total_loss = 0.0
-        for k in range(K):
-            mk = mask_softmaxed[:, k].view(B, -1, 1)  # (B, HW, 1)
-            #binary mask
-            
-            mk = binary(mk)
-            # Fk = Mk ⊙ F
-            Fk = flow_flat * mk
-            # Ek = Mk ⊙ coords
-            Ek = coords * mk
+        for b in range(B):
+            flow_flat_b = flow_flat[b]  # (HW, 2)
+            mask_softmaxed_b = mask_softmaxed[b]  # (K, HW)
+            mask_softmaxed_b = OneHotMaskSTE.apply(mask_softmaxed_b)
+            for k in range(K):
+                mk = mask_softmaxed_b[k].view(-1, 1)  # (HW, 1)
+                # Fk = Mk ⊙ F
+                Fk = flow_flat_b * mk
+                # Ek = Mk ⊙ coords
+                Ek = coords * mk
 
-            # Solve for θ̂k = (Eᵀ_k E_k)^(-1) Eᵀ_k Fk
-            # Eᵀ_k E_k shape: (B, 6, 6)
-            # Eᵀ_k Fk   shape: (B, 6, 2)
-            Ek_t = Ek.transpose(1, 2)# (B, 6, HW)
-            A = Ek_t.bmm(Ek)# (B, 6, 6)
-            A = A + 1e-6 * torch.eye(6, device=A.device).unsqueeze(0)
-            b = Ek_t.bmm(Fk)# (B, 6, 2)
-            theta_k = torch.linalg.pinv(A).bmm(b)# (B, 6, 2)
-            #F̂k = Ek θ̂k
-            Fk_hat = Ek.bmm(theta_k)# (B, HW, 2)
+                # Solve for θ̂k = (Eᵀ_k E_k)^(-1) Eᵀ_k Fk
+                # Eᵀ_k E_k shape: ( 6, 6)
+                # Eᵀ_k Fk   shape: (6, 2)
+                #transpose Ek
+                Ek_t = Ek.transpose(0, 1) # (6, HW)
 
-            residual = (Fk - Fk_hat).reshape(B, -1, 2)
-            seg_loss = self.criterion(residual, torch.zeros_like(residual))
-            total_loss += seg_loss
+                A = Ek_t @ Ek# (6, 6)
+                A = A + 1e-6 * torch.eye(6, device=A.device).unsqueeze(0)
+                b = Ek_t @ Fk # (6, 2)
+                theta_k = torch.linalg.pinv(A) @ b# (6, 2)
+                #F̂k = Ek θ̂k
+                Fk_hat = Ek @ theta_k # (HW, 2)
+
+                residual = (Fk - Fk_hat).view(-1, 2)
+
+                seg_loss = self.criterion(residual, torch.zeros_like(residual))
+                total_loss += seg_loss
     
         total_loss = total_loss / K
         return total_loss
