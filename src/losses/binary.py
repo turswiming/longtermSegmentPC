@@ -16,11 +16,9 @@ def binary(y_pred):
 class OneHotMaskSTE(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input):
-        # 前向传播：执行 argmax 并转换为 one-hot 编码
-        # argmax = input.argmax(dim=0)  # 沿着通道维度取 argmax
-        print(input.shape)
-        one_hot = F.one_hot(input.long(), num_classes=input.shape[0]).float()  # 转换为 one-hot 编码
-        one_hot = one_hot.permute(2, 0, 1).contiguous()
+        argmax = input.argmax(dim=0)
+        one_hot = F.one_hot(argmax, num_classes=input.shape[0]).float()
+        one_hot = one_hot.permute(2,0,1).contiguous()
         return one_hot
 
     @staticmethod
