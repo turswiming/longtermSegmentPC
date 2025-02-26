@@ -10,7 +10,6 @@ class BinaryMaskWithSTE(torch.autograd.Function):
         return grad_output
 
 def binary(y_pred):
-    # 使用 STE 进行二值化
     binary_mask = BinaryMaskWithSTE.apply(y_pred)
     return binary_mask
 
@@ -26,5 +25,4 @@ class OneHotMaskSTE(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        # 反向传播：直接传递梯度，跳过不可微操作
         return grad_output
