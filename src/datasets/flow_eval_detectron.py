@@ -66,6 +66,20 @@ class FlowEvalDetectron(Dataset):
         fid = self.samples_fid[str(flow_dir.parent)][flow_dir]
         flo = einops.rearrange(read_flow(str(flow_dir), self.resolution, self.to_rgb), 'c h w -> h w c')
         dataset_dict["gap"] = 'gap1'
+        number = str(flow_dir).split('/')[-1].split('.')[0]
+        flow_range = 3
+        flos0_paths = []
+        for i in range(1, flow_range):
+            flos_prefix = str(flow_dir).split(number)[0]
+            flos_suffix = str(flow_dir).split(number)[1]
+            flos0_path = flos_prefix + str(int(number) + i).zfill(len(number)) + flos_suffix
+            if Path(flos0_path).exists():
+                flos0_paths.append(flos0_path)
+            flos0_path = flos_prefix + str(int(number) - i).zfill(len(number)) + flos_suffix
+            if Path(flos0_path).exists():
+                flos0_paths.append(flos0_path)
+        flo0s = [einops.rearrange(read_flow(str(flo), self.resolution, self.to_rgb), 'c h w -> h w c') for flo in flos0_paths]
+        
 
         suffix = '.png' if 'CLEVR' in self.samples[idx] else '.jpg'
         rgb_dir = (self.data_dir[1] / self.samples[idx]).with_suffix(suffix)
@@ -87,6 +101,8 @@ class FlowEvalDetectron(Dataset):
         rgb = np.transpose(rgb, (2, 0, 1))
         rgb = rgb.clip(0., 255.)
         d2_utils.check_image_size(dataset_dict, flo)
+        for flo0 in flo0s:
+            d2_utils.check_image_size(dataset_dict, flo0)
 
         if gt_dir.exists():
             sem_seg_gt_ori = d2_utils.read_image(gt_dir)
@@ -124,12 +140,20 @@ class FlowEvalDetectron(Dataset):
         if self.to_rgb:
             flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1))) / 2 + .5
             flo = flo * 255
+            for flo0 in flo0s:
+                flo0 = torch.as_tensor(np.ascontiguousarray(flo0.transpose(2, 0, 1))) / 2 + .5
+                flo0 = flo0 * 255
         else:
             flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1)))
+            for flo0 in flo0s:
+                flo0 = torch.as_tensor(np.ascontiguousarray(flo0.transpose(2, 0, 1)))
             if self.norm_flow:
                 flo = flo/(flo ** 2).sum(0).max().sqrt()
+                for flo0 in flo0s:
+                    flo0 = flo0/(flo0 ** 2).sum(0).max().sqrt()
             flo = flo.clip(-self.flow_clip, self.flow_clip)
-
+            for flo0 in flo0s:
+                flo0 = flo0.clip(-self.flow_clip, self.flow_clip)
         rgb = torch.as_tensor(np.ascontiguousarray(rgb)).float()
         if sem_seg_gt is not None:
             sem_seg_gt = torch.as_tensor(sem_seg_gt.astype("long"))
@@ -146,6 +170,9 @@ class FlowEvalDetectron(Dataset):
                 int(self.size_divisibility * math.ceil(image_size[0] // self.size_divisibility)) - image_size[0],
             ]
             flo = F.pad(flo, padding_size, value=0).contiguous()
+            for flo0 in flo0s:
+                flo0  = torch.as_tensor(flo0)
+                flo0 = F.pad(flo0, padding_size, value=0).contiguous()
             rgb = F.pad(rgb, padding_size, value=128).contiguous()
             if sem_seg_gt is not None:
                 sem_seg_gt = F.pad(sem_seg_gt, padding_size, value=self.ignore_label).contiguous()
@@ -161,9 +188,10 @@ class FlowEvalDetectron(Dataset):
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["flow"] = flo
+        dataset_dict["flows"] = flo0s
         dataset_dict["rgb"] = rgb
-
-
+        dataset_dict["flow_dir"] = str(flow_dir)
+        # print(str(flow_dir))
         dataset_dict["original_rgb"] = F.interpolate(original_rgb[None], mode='bicubic', size=sem_seg_gt_ori.shape[-2:], align_corners=False).clip(0.,255.)[0]
         if self.read_big:
             dataset_dict["RGB_BIG"] = rgb_big

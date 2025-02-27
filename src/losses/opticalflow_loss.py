@@ -70,7 +70,7 @@ class OpticalFlowLoss:
         for b in range(B):
             flow_flat_b = flow_flat[b]  # (HW, 2)
             mask_softmaxed_b = mask_softmaxed[b]  # (K, HW)
-            mask_softmaxed_b = OneHotMaskSTE.apply(mask_softmaxed_b)
+            # mask_softmaxed_b = binary(mask_softmaxed_b)
             for k in range(K):
                 mk = mask_softmaxed_b[k].view(-1, 1)  # (HW, 1)
                 # Fk = Mk ⊙ F
