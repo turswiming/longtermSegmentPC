@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-
+import numpy as np
 class TrajectoryLoss:
     def __init__(self, cfg, model):
         self.device = model.device
@@ -24,7 +24,10 @@ class TrajectoryLoss:
             sample_b = sample[b]
             flows_b = sample_b['flows']
             flows_b.append(flow[b].permute(1, 2, 0))
-            flows_b = [torch.tensor(flow).to(self.device) for flow in flows_b]
+            for i in range(len(flows_b)):
+                # if this is a numpy array, convert it to tensor
+                if isinstance(flows_b[i], np.ndarray):
+                    flows_b[i] = torch.tensor(flows_b[i], device=self.device)
             flow_b = torch.stack(flows_b, dim=0)
             #from (K, H, W, 2) to (K, 2, H, W)
             flow_b = flow_b.permute(0, 3, 1, 2)
