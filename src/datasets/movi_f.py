@@ -44,10 +44,7 @@ for dir_name in tqdm(os.listdir(origin_path)):
         file_path = os.path.join(dir_path,file)
         if "rgba_"   in file_path:
             image = Image.open(file_path)
-            save_annotation = os.path.join(annotation_save_dir,dir_name,os.path.splitext(file)[0] + '.png').replace("rgba_","")
-            if not os.path.exists(os.path.join(annotation_save_dir,dir_name)):
-                os.makedirs(os.path.join(annotation_save_dir,dir_name))
-            image.save(save_annotation)
+            
             pass
         if "segmentation" in file_path:
             image = Image.open(file_path).convert("RGB")
@@ -55,6 +52,10 @@ for dir_name in tqdm(os.listdir(origin_path)):
             if not os.path.exists(os.path.join(JPEGImages_save_dir,dir_name)):
                 os.makedirs(os.path.join(JPEGImages_save_dir,dir_name))
             image.save(save_RGBA)
+            save_annotation = os.path.join(annotation_save_dir,dir_name,os.path.splitext(file)[0] + '.png').replace("segmentation_","")
+            if not os.path.exists(os.path.join(annotation_save_dir,dir_name)):
+                os.makedirs(os.path.join(annotation_save_dir,dir_name))
+            image.save(save_annotation)
             pass
         if "forward_flow" in file_path:
             # Load the image

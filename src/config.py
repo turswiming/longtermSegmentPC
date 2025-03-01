@@ -82,7 +82,7 @@ def setup_dataset(cfg=None, multi_val=False):
         gt_dir = "/MOVI_F/Annotations/480p"
 
         val_flow_dir = "/MOVI_F/Flows_gap1/480p"
-        val_seq = ["0"] #here list all the sequences that are val 
+        val_seq = ["0",'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
 
@@ -344,9 +344,7 @@ def add_gwm_config(cfg):
     cfg.GWM.FLOW_NORM = False
 
     cfg.GWM.LOSS_MULT = CN()
-    cfg.GWM.LOSS_MULT.REC = 0.03
     cfg.GWM.LOSS_MULT.OPT = 0.1
-    cfg.GWM.LOSS_MULT.DIV = 1e-10
     cfg.GWM.LOSS_MULT.TRAJ = 0.1
     cfg.GWM.LOSS_MULT.HEIR_W = [0.1, 0.3, 0.6]
 
