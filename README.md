@@ -1,13 +1,47 @@
-## Guess What Moves: Unsupervised Video and Image Segmentation by Anticipating Motion
+## this is a reproduction of learn seg from traj
+this original code is Guess what move
 ## reproduct report:
 
 this have been test in pytorch 2.6, python 3.12 and cuda 12 
+```bash
+python3.8 -m venv venv
+source gwm_env/bin/activate 
+```
+```bash
+pip install torch torchvision torchaudio
+pip install kornia jupyter tensorboard timm einops scikit-learn scikit-image openexr-python tqdm fontconfig
+pip install cvbase opencv-python wandb
+```
 
-to install detectron2 from source, we need to use this command
+to install detectron2 from source, we need to use this command, don`t use commands list 
 ```bash
 pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
-``` 
+```
 
+#### Data Preparation
+
+Datasets should be placed under `data/<dataset_name>`, e.g. `data/DAVIS2016`.
+
+* For video segmentation we follow the dataset preparation steps of [MotionGrouping](https://github.com/charigyang/motiongrouping).
+* For image segmentation we follow the dataset preparation steps of [unsupervised-image-segmentation](https://github.com/lukemelas/unsupervised-image-segmentation).
+
+### Running
+
+#### Training
+
+Experiments are controlled through a mix of config files and command line arguments. See config files and [`src/config.py`](src/config.py) for a list of all available options.
+
+```bash
+python main.py
+```
+Run the above commands in [`src`](src) folder.
+
+#### Evaluation
+
+Evaluation scripts are provided as [`eval-vid_segmentation.ipynb`](src/eval-vid_segmentation.ipynb) and [`eval-img_segmentation.ipynb`](src/eval-img_segmentation.ipynb) notebooks.
+
+
+# above is deprecated, don`t run code above 
 
 #### [Subhabrata Choudhury*](https://subhabratachoudhury.com/), [Laurynas Karazija*](https://karazijal.github.io), [Iro Laina](http://campar.in.tum.de/Main/IroLaina), [Andrea Vedaldi](https://www.robots.ox.ac.uk/~vedaldi/), [Christian Rupprecht](https://chrirupp.github.io/)
 ### [![ProjectPage](https://img.shields.io/badge/-Project%20Page-magenta.svg?style=for-the-badge&color=white&labelColor=magenta)](https://www.robots.ox.ac.uk/~vgg/research/gwm/) [![Conference](https://img.shields.io/badge/BMVC%20Spotlight-2022-purple.svg?style=for-the-badge&color=f1e3ff&labelColor=purple)](https://bmvc2022.org/programme/papers/#554-guess-what-moves-unsupervised-video-and-image-segmentation-by-anticipating-motion)    [![arXiv](https://img.shields.io/badge/arXiv-2205.07844-b31b1b.svg?style=for-the-badge&logo=arXiv)](https://arxiv.org/abs/2205.07844)
@@ -44,32 +78,9 @@ yes | pip install cvbase opencv-python wandb && \
 yes | python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 ```
 
-#### Data Preparation
-
-Datasets should be placed under `data/<dataset_name>`, e.g. `data/DAVIS2016`.
-
-* For video segmentation we follow the dataset preparation steps of [MotionGrouping](https://github.com/charigyang/motiongrouping).
-* For image segmentation we follow the dataset preparation steps of [unsupervised-image-segmentation](https://github.com/lukemelas/unsupervised-image-segmentation).
 
 
 
-
-### Running
-
-#### Training
-
-Experiments are controlled through a mix of config files and command line arguments. See config files and [`src/config.py`](src/config.py) for a list of all available options.
-
-```bash
-python main.py GWM.DATASET DAVIS LOG_ID davis
-python main.py GWM.DATASET FBMS  LOG_ID fbms
-python main.py GWM.DATASET STv2  LOG_ID stv2
-```
-Run the above commands in [`src`](src) folder.
-
-#### Evaluation
-
-Evaluation scripts are provided as [`eval-vid_segmentation.ipynb`](src/eval-vid_segmentation.ipynb) and [`eval-img_segmentation.ipynb`](src/eval-img_segmentation.ipynb) notebooks.
 
 
 ### Checkpoints
