@@ -5,7 +5,7 @@ this original code is Guess what move
 this have been test in pytorch 2.6, python 3.12 and cuda 12 
 ```bash
 python3.8 -m venv venv
-source gwm_env/bin/activate 
+source venv/bin/activate 
 ```
 ```bash
 pip install torch torchvision torchaudio
