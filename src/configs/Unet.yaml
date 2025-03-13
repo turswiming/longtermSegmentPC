@@ -1,4 +1,4 @@
-_BASE_: maskformer_R50_bs16_160k_dino.yaml
+_BASE_: maskformer/maskformer_R50_bs16_160k_dino.yaml
 MODEL: 
   #  META_ARCHITECTURE: "UNET"
   #  UNET:

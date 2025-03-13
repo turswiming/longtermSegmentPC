@@ -261,7 +261,7 @@ def get_argparse_args():
     parser.add_argument('--resume_path', type=str, default=None)
     parser.add_argument('--use_wandb', dest='wandb_sweep_mode', action='store_true')  # for sweep
     parser.add_argument('--config-file', type=str,
-                        default='configs/maskformer/Unet.yaml')
+                        default='configs/Unet.yaml')
     parser.add_argument('--eval_only', action='store_true')
     parser.add_argument(
         "opts",
