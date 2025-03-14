@@ -4,7 +4,7 @@ this original code is Guess what move
 
 this have been test in pytorch 2.6, python 3.12 and cuda 12 
 ```bash
-python3.8 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate 
 ```
 ```bash
