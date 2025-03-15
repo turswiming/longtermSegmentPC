@@ -319,8 +319,8 @@ def add_gwm_config(cfg):
     cfg.GWM = CN()
     cfg.GWM.REBOOST_WHEN_DECREASE = False
     cfg.GWM.MODEL = "MASKFORMER"
-    cfg.GWM.RESOLUTION = (128, 128)
-    cfg.GWM.FLOW_RES = (128, 128)
+    cfg.GWM.RESOLUTION = (96, 160)
+    cfg.GWM.FLOW_RES = (96, 160)
     cfg.GWM.SAMPLE_KEYS = ["rgb"]
     cfg.GWM.ADD_POS_EMB = False
     cfg.GWM.CRITERION = "L2"

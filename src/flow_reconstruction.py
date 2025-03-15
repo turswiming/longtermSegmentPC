@@ -6,13 +6,11 @@ from dist import LOGGER
 
 
 def lstq(A, F_u, F_v, lamda=0.01):
-    # cols = A.shape[2]
-    # assert all(cols == torch.linalg.matrix_rank(A))  # something better?
     try:
-        Q, R = torch.linalg.qr(A)
-        theta_x = torch.bmm(torch.bmm(torch.linalg.inv(R), Q.transpose(1, 2)), F_u)
-        theta_y = torch.bmm(torch.bmm(torch.linalg.inv(R), Q.transpose(1, 2)), F_v)
-    except:
+        # Solve the least squares problem
+        theta_x = torch.linalg.lstsq(A, F_u).solution
+        theta_y = torch.linalg.lstsq(A, F_v).solution
+    except Exception as e:
         LOGGER.exception("Least Squares failed")
         sys.exit(-1)
     return theta_x, theta_y
