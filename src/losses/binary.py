@@ -1,25 +1,18 @@
 import torch
 import torch.nn.functional as F
-class BinaryMaskWithSTE(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, input):
-        return (input > 0.5).float()
 
-    @staticmethod
-    def backward(ctx, grad_output):
-        return grad_output
 
 def binary(y_pred):
-    binary_mask = BinaryMaskWithSTE.apply(y_pred)
+    binary_mask = OneHotMaskSTE.apply(y_pred)
     return binary_mask
 
 class OneHotMaskSTE(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, input):
-        argmax = input.argmax(dim=0)
-        one_hot = F.one_hot(argmax, num_classes=input.shape[0]).float()
-        one_hot = one_hot.permute(2,0,1).contiguous()
-        return one_hot
+    def forward(ctx, mask_softmaxed):
+        max_indices = torch.argmax(mask_softmaxed, dim=1)  # shape (B, H, W)
+        binary_mask = F.one_hot(max_indices, num_classes=mask_softmaxed.shape[1])  # shape (B, H, W, K)
+        binary_mask = binary_mask.permute(0, 3, 1, 2).float()
+        return binary_mask
 
     @staticmethod
     def backward(ctx, grad_output):

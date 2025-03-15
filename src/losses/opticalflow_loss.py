@@ -67,12 +67,15 @@ class OpticalFlowLoss:
         flow_flat = flow.view(B, 2, -1).transpose(1, 2)
         # mask_softmaxed = OneHotMaskSTE.apply(mask_softmaxed)
         total_loss = 0.0
+        mask_binary = binary(mask_softmaxed)
         for b in range(B):
             flow_flat_b = flow_flat[b]  # (HW, 2)
-            mask_softmaxed_b = mask_softmaxed[b]  # (K, HW)
-            # mask_softmaxed_b = binary(mask_softmaxed_b)
+            mask_binary_b = mask_binary[b]  # (K, HW)
+            #binary mask
             for k in range(K):
-                mk = mask_softmaxed_b[k].view(-1, 1)  # (HW, 1)
+                mk = mask_binary_b[k].view(-1, 1)  # (HW, 1)
+                if mk.max() == 0:
+                    continue
                 # Fk = Mk ⊙ F
                 Fk = flow_flat_b * mk
                 # Ek = Mk ⊙ coords

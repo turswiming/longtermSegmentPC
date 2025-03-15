@@ -13,7 +13,7 @@ from tqdm import tqdm
 import flow_reconstruction
 from utils import visualisation, log, grid
 from utils.vit_extractor import ViTExtractor
-
+from losses.binary import binary
 label_colors = visualisation.create_label_colormap()
 logger = log.getLogger('gwm')
 
@@ -79,8 +79,9 @@ def get_image_vis(model, cfg, sample, preds, criterion):
         flow = torch.stack([x['flow'].to(model.device) for x in sample]).clip(-20, 20)
 
     masks_softmaxed = torch.softmax(masks_pred, dim=1)
-    masks_pred = masks_softmaxed
-    rec_flows = criterion.flow_reconstruction(sample, criterion.process_flow(sample, flow), masks_softmaxed)
+    # masks_pred = masks_softmaxed
+    mask_binary = binary(masks_softmaxed)
+    rec_flows = criterion.flow_reconstruction(sample, criterion.process_flow(sample, flow), mask_binary)
     rec_headers = ['rec_flow']
     if len(rec_flows) > 1:
         rec_headers.append('rec_bwd_flow')
