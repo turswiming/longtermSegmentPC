@@ -137,23 +137,24 @@ class FlowEvalDetectron(Dataset):
             )
 
         # Pad image and segmentation label here!
+# Pad image and segmentation label here!
         if self.to_rgb:
             flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1))) / 2 + .5
             flo = flo * 255
-            for flo0 in flo0s:
-                flo0 = torch.as_tensor(np.ascontiguousarray(flo0.transpose(2, 0, 1))) / 2 + .5
-                flo0 = flo0 * 255
+            for i in range(len(flo0s)):
+                flo0s[i] = torch.as_tensor(np.ascontiguousarray(flo0s[i].transpose(2, 0, 1))) / 2 + .5
+                flo0s[i] = flo0s[i] * 255
         else:
             flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1)))
-            for flo0 in flo0s:
-                flo0 = torch.as_tensor(np.ascontiguousarray(flo0.transpose(2, 0, 1)))
+            for i in range(len(flo0s)):
+                flo0s[i] = torch.as_tensor(np.ascontiguousarray(flo0s[i].transpose(2, 0, 1)))
             if self.norm_flow:
-                flo = flo/(flo ** 2).sum(0).max().sqrt()
-                for flo0 in flo0s:
-                    flo0 = flo0/(flo0 ** 2).sum(0).max().sqrt()
+                flo = flo / (flo ** 2).sum(0).max().sqrt()
+                for i in range(len(flo0s)):
+                    flo0s[i] = flo0s[i] / (flo0s[i] ** 2).sum(0).max().sqrt()
             flo = flo.clip(-self.flow_clip, self.flow_clip)
-            for flo0 in flo0s:
-                flo0 = flo0.clip(-self.flow_clip, self.flow_clip)
+            for i in range(len(flo0s)):
+                flo0s[i] = flo0s[i].clip(-self.flow_clip, self.flow_clip)
         rgb = torch.as_tensor(np.ascontiguousarray(rgb)).float()
         if sem_seg_gt is not None:
             sem_seg_gt = torch.as_tensor(sem_seg_gt.astype("long"))
@@ -170,9 +171,9 @@ class FlowEvalDetectron(Dataset):
                 int(self.size_divisibility * math.ceil(image_size[0] // self.size_divisibility)) - image_size[0],
             ]
             flo = F.pad(flo, padding_size, value=0).contiguous()
-            for flo0 in flo0s:
-                flo0  = torch.as_tensor(flo0)
-                flo0 = F.pad(flo0, padding_size, value=0).contiguous()
+            for i in range(len(flo0s)):
+                flo0s[i] = torch.as_tensor(flo0s[i])
+                flo0s[i] = F.pad(flo0s[i], padding_size, value=0).contiguous()
             rgb = F.pad(rgb, padding_size, value=128).contiguous()
             if sem_seg_gt is not None:
                 sem_seg_gt = F.pad(sem_seg_gt, padding_size, value=self.ignore_label).contiguous()

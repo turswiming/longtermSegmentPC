@@ -12,7 +12,7 @@ from PIL import Image
 from detectron2.data import detection_utils as d2_utils
 from detectron2.structures import Instances, BitMasks
 from torch.utils.data import Dataset
-
+import logging
 from utils.data import read_flow, read_flo
 
 
@@ -192,12 +192,12 @@ class FlowPairDetectron(Dataset):
             flo0 = flo0 * 255
             flo1 = torch.as_tensor(np.ascontiguousarray(flo1.transpose(2, 0, 1))) / 2 + .5
             flo1 = flo1 * 255
-            for flo in flo0s:
-                flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1))) / 2 + .5
-                flo = flo * 255
-            for flo in flo1s:
-                flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1))) / 2 + .5
-                flo = flo * 255
+            for i in range(len(flo0s)):
+                flo0s[i] = torch.as_tensor(np.ascontiguousarray(flo0s[i].transpose(2, 0, 1))) / 2 + .5
+                flo0s[i] = flo0s[i] * 255
+            for i in range(len(flo1s)):
+                flo1s[i] = torch.as_tensor(np.ascontiguousarray(flo1s[i].transpose(2, 0, 1))) / 2 + .5
+                flo1s[i] = flo1s[i] * 255
 
             if self.big_flow_resolution is not None:
                 flo0_big = torch.as_tensor(np.ascontiguousarray(flo0_big.transpose(2, 0, 1))) / 2 + .5
@@ -207,24 +207,24 @@ class FlowPairDetectron(Dataset):
         else:
             flo0 = torch.as_tensor(np.ascontiguousarray(flo0.transpose(2, 0, 1)))
             flo1 = torch.as_tensor(np.ascontiguousarray(flo1.transpose(2, 0, 1)))
-            for flo in flo0s:
-                flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1)))
-            for flo in flo1s:
-                flo = torch.as_tensor(np.ascontiguousarray(flo.transpose(2, 0, 1)))
+            for i in range(len(flo0s)):
+                flo0s[i] = torch.as_tensor(np.ascontiguousarray(flo0s[i].transpose(2, 0, 1)))
+            for i in range(len(flo1s)):
+                flo1s[i] = torch.as_tensor(np.ascontiguousarray(flo1s[i].transpose(2, 0, 1)))
             if self.norm_flow:
                 flo0 = flo0 / (flo0 ** 2).sum(0).max().sqrt()
                 flo1 = flo1 / (flo1 ** 2).sum(0).max().sqrt()
-                for flo in flo0s:
-                    flo = flo / (flo ** 2).sum(0).max().sqrt()
-                for flo in flo1s:
-                    flo = flo / (flo ** 2).sum(0).max().sqrt()
+                for i in range(len(flo0s)):
+                    flo0s[i] = flo0s[i] / (flo0s[i] ** 2).sum(0).max().sqrt()
+                for i in range(len(flo1s)):
+                    flo1s[i] = flo1s[i] / (flo1s[i] ** 2).sum(0).max().sqrt()
 
             flo0 = flo0.clip(-self.flow_clip, self.flow_clip)
             flo1 = flo1.clip(-self.flow_clip, self.flow_clip)
-            for flo in flo0s:
-                flo = flo.clip(-self.flow_clip, self.flow_clip)
-            for flo in flo1s:
-                flo = flo.clip(-self.flow_clip, self.flow_clip)
+            for i in range(len(flo0s)):
+                flo0s[i] = flo0s[i].clip(-self.flow_clip, self.flow_clip)
+            for i in range(len(flo1s)):
+                flo1s[i] = flo1s[i].clip(-self.flow_clip, self.flow_clip)
             if self.big_flow_resolution is not None:
                 flo0_big = torch.as_tensor(np.ascontiguousarray(flo0_big.transpose(2, 0, 1)))
                 flo1_big = torch.as_tensor(np.ascontiguousarray(flo1_big.transpose(2, 0, 1)))
@@ -253,12 +253,12 @@ class FlowPairDetectron(Dataset):
             ]
             flo0 = F.pad(flo0, padding_size, value=0).contiguous()
             flo1 = F.pad(flo1, padding_size, value=0).contiguous()
-            for flo in flo0s:
-                flo = torch.as_tensor(flo)
-                flo = F.pad(flo, padding_size, value=0).contiguous()
-            for flo in flo1s:
-                flo = torch.as_tensor(flo)
-                flo = F.pad(flo, padding_size, value=0).contiguous()
+            for i in range(len(flo0s)):
+                flo0s[i] = torch.as_tensor(flo0s[i])
+                flo0s[i] = F.pad(flo0s[i], padding_size, value=0).contiguous()
+            for i in range(len(flo1s)):
+                flo1s[i] = torch.as_tensor(flo1s[i])
+                flo1s[i] = F.pad(flo1s[i], padding_size, value=0).contiguous()
             rgb = F.pad(rgb, padding_size, value=128).contiguous()
             if self.photometric_aug:
                 rgb_aug = F.pad(rgb_aug, padding_size, value=128).contiguous()
@@ -298,6 +298,7 @@ class FlowPairDetectron(Dataset):
             dataset_dict["gwm_seg"] = gwm_seg_gt.long()
 
         if "annotations" in dataset_dict:
+            print("raise ValueError")
             raise ValueError("Semantic segmentation dataset should not have 'annotations'.")
 
         # Prepare per-category binary masks
