@@ -81,7 +81,7 @@ def main(args):
 
     criterions = {
         # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
-        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: 1),
+        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: max(0, 1 - x / 20000)),
         # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
         # "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ, lambda x: 1),
         }
