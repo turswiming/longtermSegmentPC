@@ -24,12 +24,19 @@ from eval_utils import eval_unsupmf, get_unsup_image_viz, get_vis_header
 from Unet_trainer import UnetTrainer
 from mask_former_trainer import MaskformerTrainer,setup
 from ourcheckpointer import OurCheckpointer
+import subprocess
+import atexit
+
 
 logger = utils.log.getLogger('gwm')
 
 def freeze(module, set=False):
     for param in module.parameters():
         param.requires_grad = set
+
+def run_new_command(cfg,iou):
+    new_command = ["python", "main.py", "--resume_path",cfg.OUTPUT_DIR+"/checkpoints/checkpoint_best.pth","--iou_best",str(iou)]  # 替换为你想要执行的命令和参数
+    subprocess.Popen(new_command)
 
 
 def main(args):
@@ -81,7 +88,7 @@ def main(args):
 
     criterions = {
         # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
-        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: max(0, 1 - x / 20000)),
+        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT, lambda x: max(0, pow(1 - x / 20000, 2))),
         # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
         # "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ, lambda x: 1),
         }
@@ -107,7 +114,7 @@ def main(args):
         f' device {model.device}, keys {cfg.GWM.SAMPLE_KEYS}, '
         f'multiple flows {cfg.GWM.USE_MULT_FLOW}')
 
-    iou_best = 0
+    iou_best = args.iou_best
     timestart = time.time()
     dilate_kernel = torch.ones((2, 2), device=model.device)
 
@@ -236,12 +243,18 @@ def main(args):
 
                     if iou := eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion,
                                            writer=writer, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE):
-                        if cfg.SOLVER.CHECKPOINT_PERIOD:
+                        if cfg.SOLVER.CHECKPOINT_PERIOD and iou > iou_best:
                             iou_best = iou
                             if not args.wandb_sweep_mode:
                                 checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
                                                   iou=iou_best)
                             logger.info(f'New best IoU {iou_best:.02f} after iteration {iteration + 1}')
+                        logger.info("cfg.GWM.REBOOST_WHEN_DECREASE  "+str(cfg.GWM.REBOOST_WHEN_DECREASE))
+                        if cfg.GWM.REBOOST_WHEN_DECREASE:
+                            logger.info(f'Current IoU {iou:.02f} is less than best IoU {iou_best:.02f} after iteration {iteration + 1}')
+                            # load the last best model
+                            run_new_command(cfg,iou_best)
+                            sys.exit()
                         if cfg.WANDB.ENABLE:
                             wandb.log({'eval/IoU_best': iou_best}, step=iteration + 1)
                         if writer:
@@ -263,6 +276,7 @@ def get_argparse_args():
     parser.add_argument('--config-file', type=str,
                         default='configs/Unet.yaml')
     parser.add_argument('--eval_only', action='store_true')
+    parser.add_argument('--iou_best', type=float, default=0)
     parser.add_argument(
         "opts",
         help="Modify config options by adding 'KEY VALUE' pairs at the end of the command. "
