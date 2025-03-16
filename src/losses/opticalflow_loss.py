@@ -9,7 +9,7 @@ from torch import nn
 import flow_reconstruction
 import utils
 from utils.visualisation import flow2rgb_torch
-from .binary import binary,OneHotMaskSTE
+from .binary import binary
 logger = utils.log.getLogger(__name__)
 
 class OpticalFlowLoss:
@@ -65,12 +65,11 @@ class OpticalFlowLoss:
                 mask_softmaxed = F.interpolate(mask_softmaxed, flow.shape[-2:], mode='bilinear', align_corners=False)
         # Flatten flow to shape (B, HW, 2)
         flow_flat = flow.view(B, 2, -1).transpose(1, 2)
-        # mask_softmaxed = OneHotMaskSTE.apply(mask_softmaxed)
         total_loss = 0.0
-        mask_binary = binary(mask_softmaxed)
         for b in range(B):
             flow_flat_b = flow_flat[b]  # (HW, 2)
-            mask_binary_b = mask_binary[b]  # (K, HW)
+            mask_binary_b = mask_softmaxed[b]  # (K, HW)
+            Fk_hat_all = torch.zeros_like(flow_flat_b)  # (HW, 2)
             #binary mask
             for k in range(K):
                 mk = mask_binary_b[k].view(-1, 1)  # (HW, 1)
@@ -94,10 +93,11 @@ class OpticalFlowLoss:
                 #F̂k = Ek θ̂k
                 Fk_hat = Ek @ theta_k # (HW, 2)
 
-                residual = (Fk - Fk_hat).view(-1, 2)
-
-                seg_loss = self.criterion(residual, torch.zeros_like(residual))
-                total_loss += seg_loss
+                # residual = (Fk - Fk_hat).view(-1, 2)
+                Fk_hat = Fk_hat.view(-1, 2)
+                Fk_hat_all += Fk_hat
+            seg_loss = self.criterion(Fk_hat_all, flow_flat_b)
+            total_loss += seg_loss
     
         total_loss = total_loss / K
         return total_loss

@@ -80,8 +80,7 @@ def get_image_vis(model, cfg, sample, preds, criterion):
 
     masks_softmaxed = torch.softmax(masks_pred, dim=1)
     # masks_pred = masks_softmaxed
-    mask_binary = binary(masks_softmaxed)
-    rec_flows = criterion.flow_reconstruction(sample, criterion.process_flow(sample, flow), mask_binary)
+    rec_flows = criterion.flow_reconstruction(sample, criterion.process_flow(sample, flow), masks_softmaxed)
     rec_headers = ['rec_flow']
     if len(rec_flows) > 1:
         rec_headers.append('rec_bwd_flow')

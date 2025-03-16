@@ -249,7 +249,6 @@ def main(args):
                                 checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
                                                   iou=iou_best)
                             logger.info(f'New best IoU {iou_best:.02f} after iteration {iteration + 1}')
-                        logger.info("cfg.GWM.REBOOST_WHEN_DECREASE  "+str(cfg.GWM.REBOOST_WHEN_DECREASE))
                         if cfg.GWM.REBOOST_WHEN_DECREASE:
                             logger.info(f'Current IoU {iou:.02f} is less than best IoU {iou_best:.02f} after iteration {iteration + 1}')
                             # load the last best model
