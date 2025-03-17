@@ -23,14 +23,17 @@ class TrajectoryLoss:
         for b in range(B):
             sample_b = sample[b]
             flows_b = sample_b['flows']
-            flows_b.append(flow[b].permute(1, 2, 0))
+            # flows_b.append(flow[b].permute(1, 2, 0))
+            flows_b.append(flow[b])
             for i in range(len(flows_b)):
                 # if this is a numpy array, convert it to tensor
                 if isinstance(flows_b[i], np.ndarray):
                     flows_b[i] = torch.tensor(flows_b[i], device=self.device)
+                flows_b[i] = flows_b[i].to(self.device)
             flow_b = torch.stack(flows_b, dim=0)
+            # print(flow_b.shape)
             #from (K, H, W, 2) to (K, 2, H, W)
-            flow_b = flow_b.permute(0, 3, 1, 2)
+            # flow_b = flow_b.permute(0, 3, 1, 2)
             flow_b = flow_b.reshape(flow_b.shape[0]*flow_b.shape[1], -1)
             # print(flow_b.shape)
             for k in range(K):
