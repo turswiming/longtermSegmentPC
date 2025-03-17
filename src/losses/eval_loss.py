@@ -79,5 +79,9 @@ for i in range(noise_range+1):
 import matplotlib.pyplot as plt
 plt.plot(loss_list)
 plt.show()
+plt.xlabel("Noise Level")
+plt.ylabel("Loss")
+plt.title("Loss Trajectory with Noise, random seed stable")
+# plt.title("Loss optical flow with Noise, random seed stable")
 plt.savefig("loss_traj.png")
 print("done")
