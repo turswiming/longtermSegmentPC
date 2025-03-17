@@ -239,11 +239,16 @@ def loaders(cfg):
         subset = cfg.SOLVER.IMS_PER_BATCH * 3
         train_dataset = torch.utils.data.Subset(train_dataset, list(range(subset)))
         val_dataset = torch.utils.data.Subset(val_dataset, list(range(subset)))
-
-    g = torch.Generator()
-    data_generator_seed = int(torch.randint(int(1e6), (1,)).item())
-    logger.info(f"Dataloaders generator seed {data_generator_seed}")
-    g.manual_seed(data_generator_seed)
+    if cfg.GWM.STABLE_SEED:
+        g = torch.Generator()
+        data_generator_seed = 42
+        logger.info(f"Dataloaders generator seed {data_generator_seed}")
+        g.manual_seed(data_generator_seed)
+    else:
+        g = torch.Generator()
+        data_generator_seed = int(torch.randint(int(1e6), (1,)).item())
+        logger.info(f"Dataloaders generator seed {data_generator_seed}")
+        g.manual_seed(data_generator_seed)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -274,10 +279,16 @@ def multi_loaders(cfg):
     logger.info(f"Sourcing multiple loaders from {len(val_datasets)}")
     logger.info(f"Sourcing data from {val_datasets[0].data_dir[0]}")
 
-    g = torch.Generator()
-    data_generator_seed = int(torch.randint(int(1e6), (1,)).item())
-    logger.info(f"Dataloaders generator seed {data_generator_seed}")
-    g.manual_seed(data_generator_seed)
+    if cfg.GWM.STABLE_SEED:
+        g = torch.Generator()
+        data_generator_seed = 42
+        logger.info(f"Dataloaders generator seed {data_generator_seed}")
+        g.manual_seed(data_generator_seed)
+    else:
+        g = torch.Generator()
+        data_generator_seed = int(torch.randint(int(1e6), (1,)).item())
+        logger.info(f"Dataloaders generator seed {data_generator_seed}")
+        g.manual_seed(data_generator_seed)
 
     train_loader = torch.utils.data.DataLoader(train_dataset,
                                                num_workers=cfg.DATALOADER.NUM_WORKERS,
@@ -318,6 +329,7 @@ def multi_loaders(cfg):
 
 def add_gwm_config(cfg):
     cfg.GWM = CN()
+    cfg.GWM.STABLE_SEED = False
     cfg.GWM.REBOOST_WHEN_DECREASE = False
     cfg.GWM.MODEL = "MASKFORMER"
     cfg.GWM.RESOLUTION = (96, 160)
