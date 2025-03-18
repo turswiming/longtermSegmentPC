@@ -29,7 +29,7 @@ from config import add_gwm_config
 logger = logging.getLogger('gwm')
 
 
-class MaskformerTrainer(DefaultTrainer):
+class Trainer(DefaultTrainer):
     """
     Extension of the Trainer class adapted to DETR.
     """
@@ -203,15 +203,12 @@ def setup(args):
     cfg = get_cfg()
     # for poly lr schedule
     add_deeplab_config(cfg)
-    if model == "MASKFORMER":
-        from mask_former import add_mask_former_config
-        add_mask_former_config(cfg)
-    elif model == "UNET":
-        import unet.config
-        unet.config.add_unet_config(cfg)
-    else:
-        logger.error(f'Unknown Model: {model}. Exiting..')
-        sys.exit(0)
+    from mask_former import add_mask_former_config
+    add_mask_former_config(cfg)
+    from unet import add_unet_config
+    add_unet_config(cfg)
+    from OneMatrix import add_OneMatrix_config
+    add_OneMatrix_config(cfg)
 
     add_gwm_config(cfg)
     cfg.merge_from_file(args.config_file)

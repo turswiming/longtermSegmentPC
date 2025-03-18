@@ -74,7 +74,7 @@ def setup_dataset(cfg=None, multi_val=False):
         # val_seq = ['dog', 'cows', 'goat', 'camel', 'libby', 'parkour', 'soapbox', 'blackswan', 'bmx-trees',
         #            'kite-surf', 'car-shadow', 'breakdance', 'dance-twirl', 'scooter-black', 'drift-chicane',
         #            'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
-        val_seq = ['dog']
+        val_seq = ['car-shadow']
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
     elif cfg.GWM.DATASET == "MOVI_F":

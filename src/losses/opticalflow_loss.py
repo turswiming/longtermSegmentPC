@@ -95,9 +95,9 @@ class OpticalFlowLoss:
 
                 # residual = (Fk - Fk_hat).view(-1, 2)
                 Fk_hat = Fk_hat.view(-1, 2)
-                Fk_hat_all += Fk_hat
-            seg_loss = self.criterion(Fk_hat_all, flow_flat_b)
-            total_loss += seg_loss
+                # Fk_hat_all += Fk_hat
+                seg_loss = self.criterion(Fk_hat, Fk)
+                total_loss += seg_loss
     
         total_loss = total_loss / K
         return total_loss

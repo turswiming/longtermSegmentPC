@@ -6,8 +6,8 @@
 import os
 import shutil
 
-val_data_list = ["dog"]
-train_data_list = ["bear"]
+val_data_list = ["car-shadow"]
+train_data_list = ["car-shadow"]
 
 # Define source and destination base paths
 src_base_path = "/workspace/guess-what-moves/DAVIS2016"
@@ -35,20 +35,26 @@ for subfolder in subfolderList:
         dest_path = os.path.join(dest_base_path_val, data)
         if not os.path.exists(dest_path):
             os.makedirs(dest_path)
+        file_to_copy = sorted([x.split(".")[0] for x in os.listdir(src_path)])
+        if "00007" in file_to_copy:
+            file_to_copy = "00007.jpg"
+        elif "00008" in file_to_copy:
+            file_to_copy = "00008.jpg"
         for file in os.listdir(src_path):
-            src_file_path = os.path.join(src_path, file)
+            src_file_path = os.path.join(src_path, file_to_copy.split(".")[0]+"."+file.split(".")[1])
             dest_file_path = os.path.join(dest_path, file)
             shutil.copy(src_file_path, dest_file_path)
             print("Copied file: " + src_file_path + " to " + dest_file_path)
     
-    for data in train_data_list:
-        src_path = os.path.join(src_base_path_val, data)
-        dest_path = os.path.join(dest_base_path_val, data)
-        if not os.path.exists(dest_path):
-            os.makedirs(dest_path)
-        for file in os.listdir(src_path):
-            src_file_path = os.path.join(src_path, file)
-            dest_file_path = os.path.join(dest_path, file)
-            shutil.copy(src_file_path, dest_file_path)
-            print("Copied file: " + src_file_path + " to " + dest_file_path)
+    # for data in train_data_list:
+    #     src_path = os.path.join(src_base_path_val, data)
+    #     dest_path = os.path.join(dest_base_path_val, data)
+    #     if not os.path.exists(dest_path):
+    #         os.makedirs(dest_path)
+    #     file_to_copy = sorted(os.listdir(src_path))[0]
+    #     for file in os.listdir(src_path):
+    #         src_file_path = os.path.join(src_path, file_to_copy.split(".")[0]+"."+file.split(".")[1])
+    #         dest_file_path = os.path.join(dest_path, file)
+    #         shutil.copy(src_file_path, dest_file_path)
+    #         print("Copied file: " + src_file_path + " to " + dest_file_path)
 

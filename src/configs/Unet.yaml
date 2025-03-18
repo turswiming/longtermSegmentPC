@@ -1,12 +1,15 @@
 _BASE_: maskformer/maskformer_R50_bs16_160k_dino.yaml
 MODEL: 
-  #  META_ARCHITECTURE: "UNET"
-  #  UNET:
-  #   N_CHANNELS: 3
-  #   N_CLASSES: 25
+   META_ARCHITECTURE: "UNET" # "UNET" or "MASKFORMER" or "ONEMATRIX"
+  #  ONEMATRIX:
+  #   N_CLASSES: 4
   #   BILINEAR: True
+   UNET:
+    N_CHANNELS: 3
+    N_CLASSES: 2
+    BILINEAR: True
    MASK_FORMER:
-    NUM_OBJECT_QUERIES: 4
+    NUM_OBJECT_QUERIES: 2
 GWM:
   # MODEL: "UNET"
   STABLE_SEED: True

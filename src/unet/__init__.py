@@ -2,3 +2,4 @@
 
 from .unet_model import UNET
 
+from .config import add_unet_config

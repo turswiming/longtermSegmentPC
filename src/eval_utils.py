@@ -179,7 +179,8 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
 
     merger = None
     if cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES > 2:
-        merger = MaskMerger(cfg, model)
+        pass
+    merger = MaskMerger(cfg, model)
 
     print_idxs = random.sample(range(int(len(val_loader))), k=10)
 

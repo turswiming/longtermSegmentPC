@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from mask_former_trainer import MaskformerTrainer,setup
+from trainer import Trainer,setup
 import losses
 import config
 
@@ -31,7 +31,7 @@ def get_argparse_args():
 args = get_argparse_args().parse_args()
 
 cfg = setup(args)
-model = MaskformerTrainer.build_model(cfg)
+model = Trainer.build_model(cfg)
 
 criterions = {
     # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
