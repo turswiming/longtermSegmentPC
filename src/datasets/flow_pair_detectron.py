@@ -14,6 +14,7 @@ from detectron2.structures import Instances, BitMasks
 from torch.utils.data import Dataset
 import logging
 from utils.data import read_flow, read_flo
+import os
 
 
 def load_flow_tensor(path, resize=None, normalize=True, align_corners=True):
@@ -97,31 +98,41 @@ class FlowPairDetectron(Dataset):
 
         flo0 = einops.rearrange(read_flow(str(flos[0]), self.resolution, self.to_rgb), 'c h w -> h w c')
         flo1 = einops.rearrange(read_flow(str(flos[1]), self.resolution, self.to_rgb), 'c h w -> h w c')
-        # print(str(flos[0])) #../data/MOVI_F/Flows_gap1/480p/150/00006.flo
-        number = str(flos[0]).split('/')[-1].split('.')[0]
-        # print(number) #00006
-        flow_range = 3
-        flos0_paths = []
-        flos1_paths = []
-        for i in range(1, flow_range):
-            flos_prefix = str(flos[0]).split(number)[0]
-            flos_suffix = str(flos[0]).split(number)[1]
-            flos0_path = flos_prefix + str(int(number) + i).zfill(len(number)) + flos_suffix
-            if Path(flos0_path).exists():
-                flos0_paths.append(flos0_path)
-            flos0_path = flos_prefix + str(int(number) - i).zfill(len(number)) + flos_suffix
-            if Path(flos0_path).exists():
-                flos0_paths.append(flos0_path)
-            flos_prefix = flos_prefix.replace('gap1', 'gap-1')
-            flos1_path = flos_prefix + str(int(number) + i).zfill(len(number)) + flos_suffix
-            if Path(flos1_path).exists():
-                flos1_paths.append(flos1_path)
-            flos1_path = flos_prefix + str(int(number) - i).zfill(len(number)) + flos_suffix
-            if Path(flos1_path).exists():
-                flos1_paths.append(flos1_path)
-        flo0s = [einops.rearrange(read_flow(str(flo), self.resolution, self.to_rgb), 'c h w -> h w c') for flo in flos0_paths]
-        flo1s = [einops.rearrange(read_flow(str(flo), self.resolution, self.to_rgb), 'c h w -> h w c') for flo in flos1_paths]
+
+        # print(str(flos[0])) #../data/DAVIS2016/Flows_gap1/480p/bear/00006.flo
+        # traj path should be ../data/DAVIS2016/Traj/480p/bear_tracks.npy
+        flow_file_path = str(flos[0])
+        number_str = flow_file_path.split('/')[-1].split('.')[0]
+        number_int = int(number_str)
+        path_prefix_list = flow_file_path.split('/')[:3] +["Traj"] +flow_file_path.split('/')[4:-1]
+        path_prefix = '/'.join(path_prefix_list)
+        # traj_tracks.shape (1, 40, 900, 2) [1, frame_length, num_tracks, 2]
+        # traj_visibility.shape (1, 40, 900) [1, frame_length, num_tracks]
+        traj_tracks_file_path = path_prefix+'_tracks.npy'
+        traj_visibility_file_path = path_prefix+'_visibility.npy'
+        if os.path.exists(traj_tracks_file_path):
+            traj_tracks = np.load(traj_tracks_file_path)
+        else:
+            raise ValueError(f"Trajectory file not found: {traj_tracks_file_path}")
+        if os.path.exists(traj_visibility_file_path):
+            traj_visibility = np.load(traj_visibility_file_path)
+        else:
+            raise ValueError(f"Trajectory file not found: {traj_visibility_file_path}")
         
+        video_length = traj_tracks.shape[1]
+        sub_video_length = 11
+        start_frame = number_int - sub_video_length//2
+        end_frame = number_int + sub_video_length//2
+        if start_frame < 0:
+            start_frame = 0
+        if end_frame >= video_length:
+            end_frame = video_length
+        traj_tracks = traj_tracks[0,start_frame:end_frame]
+        traj_visibility = traj_visibility[0,start_frame:end_frame]
+
+
+        number = str(flos[0]).split('/')[-1].split('.')[0]
+
 
 
         if self.big_flow_resolution is not None:
@@ -150,10 +161,6 @@ class FlowPairDetectron(Dataset):
         rgb = rgb.clip(0., 255.)
         # print('here', rgb.min(), rgb.max())
         d2_utils.check_image_size(dataset_dict, flo0)
-        for flo in flo0s:
-            d2_utils.check_image_size(dataset_dict, flo)
-        for flo in flo1s:
-            d2_utils.check_image_size(dataset_dict, flo)
         if gt_dir.exists():
             sem_seg_gt = d2_utils.read_image(str(gt_dir))
             sem_seg_gt = preprocessing_transforms.apply_segmentation(sem_seg_gt)
@@ -192,12 +199,6 @@ class FlowPairDetectron(Dataset):
             flo0 = flo0 * 255
             flo1 = torch.as_tensor(np.ascontiguousarray(flo1.transpose(2, 0, 1))) / 2 + .5
             flo1 = flo1 * 255
-            for i in range(len(flo0s)):
-                flo0s[i] = torch.as_tensor(np.ascontiguousarray(flo0s[i].transpose(2, 0, 1))) / 2 + .5
-                flo0s[i] = flo0s[i] * 255
-            for i in range(len(flo1s)):
-                flo1s[i] = torch.as_tensor(np.ascontiguousarray(flo1s[i].transpose(2, 0, 1))) / 2 + .5
-                flo1s[i] = flo1s[i] * 255
 
             if self.big_flow_resolution is not None:
                 flo0_big = torch.as_tensor(np.ascontiguousarray(flo0_big.transpose(2, 0, 1))) / 2 + .5
@@ -207,24 +208,12 @@ class FlowPairDetectron(Dataset):
         else:
             flo0 = torch.as_tensor(np.ascontiguousarray(flo0.transpose(2, 0, 1)))
             flo1 = torch.as_tensor(np.ascontiguousarray(flo1.transpose(2, 0, 1)))
-            for i in range(len(flo0s)):
-                flo0s[i] = torch.as_tensor(np.ascontiguousarray(flo0s[i].transpose(2, 0, 1)))
-            for i in range(len(flo1s)):
-                flo1s[i] = torch.as_tensor(np.ascontiguousarray(flo1s[i].transpose(2, 0, 1)))
             if self.norm_flow:
                 flo0 = flo0 / (flo0 ** 2).sum(0).max().sqrt()
                 flo1 = flo1 / (flo1 ** 2).sum(0).max().sqrt()
-                for i in range(len(flo0s)):
-                    flo0s[i] = flo0s[i] / (flo0s[i] ** 2).sum(0).max().sqrt()
-                for i in range(len(flo1s)):
-                    flo1s[i] = flo1s[i] / (flo1s[i] ** 2).sum(0).max().sqrt()
 
             flo0 = flo0.clip(-self.flow_clip, self.flow_clip)
             flo1 = flo1.clip(-self.flow_clip, self.flow_clip)
-            for i in range(len(flo0s)):
-                flo0s[i] = flo0s[i].clip(-self.flow_clip, self.flow_clip)
-            for i in range(len(flo1s)):
-                flo1s[i] = flo1s[i].clip(-self.flow_clip, self.flow_clip)
             if self.big_flow_resolution is not None:
                 flo0_big = torch.as_tensor(np.ascontiguousarray(flo0_big.transpose(2, 0, 1)))
                 flo1_big = torch.as_tensor(np.ascontiguousarray(flo1_big.transpose(2, 0, 1)))
@@ -253,12 +242,6 @@ class FlowPairDetectron(Dataset):
             ]
             flo0 = F.pad(flo0, padding_size, value=0).contiguous()
             flo1 = F.pad(flo1, padding_size, value=0).contiguous()
-            for i in range(len(flo0s)):
-                flo0s[i] = torch.as_tensor(flo0s[i])
-                flo0s[i] = F.pad(flo0s[i], padding_size, value=0).contiguous()
-            for i in range(len(flo1s)):
-                flo1s[i] = torch.as_tensor(flo1s[i])
-                flo1s[i] = F.pad(flo1s[i], padding_size, value=0).contiguous()
             rgb = F.pad(rgb, padding_size, value=128).contiguous()
             if self.photometric_aug:
                 rgb_aug = F.pad(rgb_aug, padding_size, value=128).contiguous()
@@ -273,12 +256,11 @@ class FlowPairDetectron(Dataset):
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["flow"] = flo0
-        dataset_dict["flows"] = flo0s
         dataset_dict["flow_2"] = flo1
 
-        dataset_dict["flow_2s"] = flo1s
 
-
+        dataset_dict["traj_tracks"] = traj_tracks
+        dataset_dict["traj_visibility"] = traj_visibility
         dataset_dict["rgb"] = rgb
         dataset_dict["original_rgb"] = original_rgb
         if self.read_big:
