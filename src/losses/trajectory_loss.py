@@ -17,7 +17,7 @@ class TrajectoryLoss:
         Computes the sum of the parametric reconstruction residuals over all segments.
         """
         
-        B, K, H, W = mask_softmaxed.shape
+        B, S, H, W = mask_softmaxed.shape
         total_loss = 0.0
 
         for b in range(B):
@@ -36,8 +36,8 @@ class TrajectoryLoss:
             # flow_b = flow_b.permute(0, 3, 1, 2)
             flow_b = flow_b.reshape(flow_b.shape[0]*flow_b.shape[1], -1)
             # print(flow_b.shape)
-            for k in range(K):
-                mk = mask_softmaxed[b, k].view(-1, 1)  # (HW, 1)
+            for s in range(S):
+                mk = mask_softmaxed[b, s].view(-1, 1)  # (HW, 1)
                 Pk = flow_b * mk.T  # (2, HW) * (HW, 1) -> (2, HW)
 
                 U, S, V = torch.svd(Pk)
@@ -53,5 +53,5 @@ class TrajectoryLoss:
                 seg_loss = self.criterion(residual, torch.zeros_like(residual))
                 total_loss += seg_loss
 
-        total_loss = total_loss / K
+        total_loss = total_loss / S
         return total_loss
