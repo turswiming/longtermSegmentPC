@@ -62,7 +62,18 @@ for i in range(noise_range+1):
             slot_size = cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES
             gt_masks = sample[0]["instances"].gt_masks
             
-            masks = torch.stack([x['instances'].gt_masks for x in sample])
+            max_channels = max(x['instances'].gt_masks.shape[0] for x in sample)  # Find the maximum number of channels
+
+            padded_masks = []
+            for x in sample:
+                mask = x['instances'].gt_masks
+                if mask.shape[0] < max_channels:
+                    # Pad with zeros to match max_channels
+                    padding = (0, 0, 0, 0, 0, max_channels - mask.shape[0])  # Pad only the channel dimension
+                    mask = F.pad(mask, padding)
+                padded_masks.append(mask)
+
+            masks = torch.stack(padded_masks)
             #repeat masks to match the slot size
             masks = masks.repeat(1, slot_size, 1, 1)
             masks = masks.to(model.device)
@@ -81,7 +92,7 @@ plt.plot(loss_list)
 plt.show()
 plt.xlabel("Noise Level")
 plt.ylabel("Loss")
-plt.title("Loss Trajectory with Noise, random seed stable")
+plt.title("Loss Trajectory with Noise, formula2")
 # plt.title("Loss optical flow with Noise, random seed stable")
 plt.savefig("loss_traj.png")
 print("done")

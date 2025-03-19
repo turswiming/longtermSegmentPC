@@ -12,29 +12,21 @@ class TrajectoryLoss:
     def __call__(self, sample, flow, mask_softmaxed, it, train=True):
         return self.loss(sample, flow, mask_softmaxed, it, train=train)
 
-    def pi_func(self, mask_single_frame,traj_single_frame):
+    def pi_func(self, mask_single_frame, traj_single_frame):
         '''
         :param mask_single_frame: (H, W)
-        :param traj_single_frame: (2, num_tracks), where num_tracks is the number of tracks in the frame, the first dimension is W, the second dimension is H
-        return (num_tracks) that if the track is visible in the mask
+        :param traj_single_frame: (2, num_tracks)
+        :return: (num_tracks) 
         '''
-        output = torch.ones(traj_single_frame.shape[1]).to(self.device)
-        traj_single_frame[0, :] = traj_single_frame[0, :] *mask_single_frame.shape[1]
-        traj_single_frame[1, :] = traj_single_frame[1, :] *mask_single_frame.shape[0]
-        for i in range(traj_single_frame.shape[1]):
-            x = int(traj_single_frame[0, i])
-            y = int(traj_single_frame[1, i])
-            if x < 0 or x >= mask_single_frame.shape[1] or y < 0 or y >= mask_single_frame.shape[0]:
-                output[i] = 0
-            else:
-                output[i] *= mask_single_frame[y, x] 
-        return output
-        pass
+        H, W = mask_single_frame.shape
+        mask = mask_single_frame.unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+        grid = traj_single_frame.permute(1, 0).unsqueeze(0).unsqueeze(0)  # (1, 1, num_tracks, 2)
+        grid = 2 * grid - 1
+        sampled = F.grid_sample(mask, grid, mode='bilinear', padding_mode='zeros', align_corners=False)
+        return sampled.squeeze()  # (num_tracks)
+
 
     def loss(self, sample, flow, mask_softmaxed, it, train=True):
-        """
-        Computes the sum of the parametric reconstruction residuals over all segments.
-        """
         
         B, K, H, W = mask_softmaxed.shape
         total_loss = 0.0
@@ -48,7 +40,7 @@ class TrajectoryLoss:
             # traj_visibility.shape (10, 900) [1, frame_length, num_tracks]
             # convert from numpy to tensor
             traj_tracks = traj_tracks.to(self.device)
-
+            series_length, num_tracks, _ = traj_tracks.shape
             traj_visibility = traj_visibility.to(self.device)
 
             Pt = traj_tracks[abs_index].permute(1, 0) # Pt [2, num_tracks]
@@ -59,18 +51,18 @@ class TrajectoryLoss:
                 Mk_hat = self.pi_func(mask_softmaxed[b, k], Pt) # Mk_hat [num_tracks]
                 Mk_hat = Mk_hat*Pt_visibility
                 Pk = traj_tracks*Mk_hat # Pk [frame_length * 2, num_tracks] 
-                U, S, V = torch.svd(Pk)
-
-                Sr = S[:self.r]
-                Ur = U[:, :self.r]
-                Vr = V[:, :self.r]
-
-                Pk_hat = Ur @ torch.diag(Sr) @ Vr.T
-
-                residual = Pk - Pk_hat
-
-                seg_loss = self.criterion(residual, torch.zeros_like(residual))
+                
+                if Pk.shape[1] == 0:
+                    continue
+                try:
+                    _, S, _ = torch.svd(Pk)
+                except RuntimeError:
+                    S = torch.zeros(min(Pk.shape), device=Pk.device)
+                
+                seg_loss = torch.sum(S[self.r:]) 
                 total_loss += seg_loss
+                # in some condition, the series length may not stable, 
+                # so we divide it to make loss stable
+                total_loss /= series_length 
 
-        total_loss = total_loss / K
         return total_loss
