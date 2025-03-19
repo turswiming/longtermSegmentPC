@@ -43,7 +43,7 @@ def read_flow(sample_dir, resolution=None, to_rgb=False):
         flow[:, :, 1] = flow[:, :, 1] * resolution[0] / h
     if to_rgb:
         flow = np.clip((flow2rgb(flow) - 0.5) * 2, -1., 1.)
-    return einops.rearrange(flow, 'h w c -> c h w')
+    return einops.rearrange(flow, 'h w c -> c h w'), h, w
 
 
 def read_rgb(sample_dir, resolution=None):

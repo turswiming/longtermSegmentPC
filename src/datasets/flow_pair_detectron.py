@@ -95,9 +95,10 @@ class FlowPairDetectron(Dataset):
         suffix = '.png' if 'CLEVR' in fname else '.jpg'
         rgb_dir = (self.data_dir[1] / dname / fname).with_suffix(suffix)
         gt_dir = (self.data_dir[2] / dname / fname).with_suffix('.png')
-
-        flo0 = einops.rearrange(read_flow(str(flos[0]), self.resolution, self.to_rgb), 'c h w -> h w c')
-        flo1 = einops.rearrange(read_flow(str(flos[1]), self.resolution, self.to_rgb), 'c h w -> h w c')
+        flo0_ori, h, w = read_flow(str(flos[0]), self.resolution, self.to_rgb)
+        flo1_ori, _, _ = read_flow(str(flos[1]), self.resolution, self.to_rgb)
+        flo0 = einops.rearrange(flo0_ori, 'c h w -> h w c')
+        flo1 = einops.rearrange(flo1_ori, 'c h w -> h w c')
 
         # print(str(flos[0])) #../data/DAVIS2016/Flows_gap1/480p/bear/00006.flo
         # traj path should be ../data/DAVIS2016/Traj/480p/bear_tracks.npy
@@ -129,15 +130,23 @@ class FlowPairDetectron(Dataset):
             end_frame = video_length
         traj_tracks = traj_tracks[0,start_frame:end_frame]
         traj_visibility = traj_visibility[0,start_frame:end_frame]
+        #to tensor
+        traj_tracks = torch.tensor(traj_tracks)
+        traj_visibility = torch.tensor(traj_visibility)
+        traj_tracks[:,:,0] = traj_tracks[:,:,0]/w
+        traj_tracks[:,:,1] = traj_tracks[:,:,1]/h
 
+        abs_index = number_int - start_frame
 
         number = str(flos[0]).split('/')[-1].split('.')[0]
 
 
 
         if self.big_flow_resolution is not None:
-            flo0_big = einops.rearrange(read_flow(str(flos[0]), self.big_flow_resolution, self.to_rgb), 'c h w -> h w c')
-            flo1_big = einops.rearrange(read_flow(str(flos[1]), self.big_flow_resolution, self.to_rgb), 'c h w -> h w c')
+            flo0_big_ori, _, _ = read_flow(str(flos[0]), self.big_flow_resolution, self.to_rgb)
+            flo1_big_ori, _, _ = read_flow(str(flos[1]), self.big_flow_resolution, self.to_rgb)
+            flo0_big = einops.rearrange(flo0_big_ori, 'c h w -> h w c')
+            flo1_big = einops.rearrange(flo1_big_ori, 'c h w -> h w c')
         rgb = d2_utils.read_image(rgb_dir).astype(np.float32)
         original_rgb = torch.as_tensor(np.ascontiguousarray(np.transpose(rgb, (2, 0, 1)).clip(0., 255.))).float()
         if self.read_big:
@@ -261,6 +270,7 @@ class FlowPairDetectron(Dataset):
 
         dataset_dict["traj_tracks"] = traj_tracks
         dataset_dict["traj_visibility"] = traj_visibility
+        dataset_dict["abs_index"] = abs_index
         dataset_dict["rgb"] = rgb
         dataset_dict["original_rgb"] = original_rgb
         if self.read_big:

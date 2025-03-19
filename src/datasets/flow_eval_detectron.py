@@ -64,7 +64,8 @@ class FlowEvalDetectron(Dataset):
         dataset_dict = {}
         flow_dir = Path(self.data_dir[0]) / self.samples[idx]
         fid = self.samples_fid[str(flow_dir.parent)][flow_dir]
-        flo = einops.rearrange(read_flow(str(flow_dir), self.resolution, self.to_rgb), 'c h w -> h w c')
+        flo_ori, h, w = read_flow(str(flow_dir), self.resolution, self.to_rgb)
+        flo = einops.rearrange(flo_ori, 'c h w -> h w c')
         dataset_dict["gap"] = 'gap1'
         number = str(flow_dir).split('/')[-1].split('.')[0]
         
@@ -99,7 +100,12 @@ class FlowEvalDetectron(Dataset):
             end_frame = video_length
         traj_tracks = traj_tracks[0,start_frame:end_frame]
         traj_visibility = traj_visibility[0,start_frame:end_frame]
-
+        #to tensor
+        traj_tracks = torch.tensor(traj_tracks)
+        traj_visibility = torch.tensor(traj_visibility)
+        traj_tracks[:,:,0] = traj_tracks[:,:,0]/w
+        traj_tracks[:,:,1] = traj_tracks[:,:,1]/h
+        abs_index = number_int - start_frame
 
 
         suffix = '.png' if 'CLEVR' in self.samples[idx] else '.jpg'
@@ -199,7 +205,7 @@ class FlowEvalDetectron(Dataset):
         
         dataset_dict["traj_tracks"] = traj_tracks
         dataset_dict["traj_visibility"] = traj_visibility
-        
+        dataset_dict["abs_index"] = abs_index
         dataset_dict["rgb"] = rgb
         dataset_dict["flow_dir"] = str(flow_dir)
         # print(str(flow_dir))
