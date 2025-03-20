@@ -36,20 +36,21 @@ class TrajectoryLoss:
             traj_tracks = sample_b['traj_tracks']
             traj_visibility = sample_b['traj_visibility']
             abs_index = sample_b['abs_index']
-            # traj_tracks.shape (10, 900, 2) [frame_length, num_tracks, 2]
-            # traj_visibility.shape (10, 900) [1, frame_length, num_tracks]
+            # traj_tracks.shape (10, 900, 2) [frame_length, num_tracks, 2] (0~1)
+            # traj_visibility.shape (10, 900) [frame_length, num_tracks] (0 or 1) flost
             # convert from numpy to tensor
             traj_tracks = traj_tracks.to(self.device)
             series_length, num_tracks, _ = traj_tracks.shape
             traj_visibility = traj_visibility.to(self.device)
-
+            #Pt
             Pt = traj_tracks[abs_index].permute(1, 0) # Pt [2, num_tracks]
             Pt_visibility = traj_visibility[abs_index] # Pt_visibility [num_tracks]
             # convert from [frame_length, num_tracks, 2] to [frame_length * 2, num_tracks]
+            # P
             traj_tracks = traj_tracks.permute(2, 0, 1).reshape(-1, traj_tracks.shape[1])
             for k in range(K):
                 Mk_hat = self.pi_func(mask_softmaxed[b, k], Pt) # Mk_hat [num_tracks]
-                Mk_hat = Mk_hat*Pt_visibility
+                Mk_hat = Mk_hat*Pt_visibility #[num_tracks]
                 Pk = traj_tracks*Mk_hat # Pk [frame_length * 2, num_tracks] 
                 
                 if Pk.shape[1] == 0:
@@ -59,10 +60,11 @@ class TrajectoryLoss:
                 except RuntimeError:
                     S = torch.zeros(min(Pk.shape), device=Pk.device)
                 
-                seg_loss = torch.sum(S[self.r:]) 
-                total_loss += seg_loss
+                seg_loss = torch.sum(S[self.r:])
                 # in some condition, the series length may not stable, 
                 # so we divide it to make loss stable
-                total_loss /= series_length 
+                seg_loss /= series_length 
+                total_loss += seg_loss
+                
 
         return total_loss
