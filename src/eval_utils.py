@@ -172,7 +172,7 @@ def is_2comp_dataset(dataset):
                  'FBMS',
                  'STv2']
 
-def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteration=0, use_wandb=False):
+def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteration=0, use_wandb=False,mode='eval'):
     logger.info(f'Running Evaluation: {cfg.LOG_ID} {"Simple" if cfg.GWM.SIMPLE_REC else "Gradient"}:')
     logger.info(f'Model mode: {"train" if model.training else "eval"}, wandb: {use_wandb}')
     logger.info(f'Dataset: {cfg.GWM.DATASET} # components: {cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES}')
@@ -237,7 +237,10 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
         images_viz = torch.cat(images_viz, dim=1)
         images_viz = torch.cat([header, images_viz], dim=1)
         writer.add_image('val/images', images_viz, writer_iteration)  # C H W
-        writer.add_scalar('eval/mIoU', frame_mean_iou, writer_iteration)
+        if mode == 'eval':
+            writer.add_scalar('eval/mIoU', frame_mean_iou, writer_iteration)
+        elif mode == 'train':
+            writer.add_scalar('train/mIoU', frame_mean_iou, writer_iteration)
 
     logger.info(f"mIoU: {frame_mean_iou:.3f} \n")
     return frame_mean_iou

@@ -18,7 +18,7 @@ from utils.data import read_flow
 
 class FlowEvalDetectron(Dataset):
     def __init__(self, data_dir, resolution, pair_list, val_seq, to_rgb=False, with_rgb=False, size_divisibility=None,
-                 small_val=0, flow_clip=1., norm=True, read_big=True, eval_size=True, force1080p=False):
+                 small_val=0, flow_clip=1., norm=True, read_big=True, eval_size=True, force1080p=False,focus_series=None):
         self.val_seq = val_seq
         self.to_rgb = to_rgb
         self.with_rgb = with_rgb
@@ -53,6 +53,7 @@ class FlowEvalDetectron(Dataset):
             self.force1080p_transforms = DT.AugmentationList([
             DT.Resize((1088, 1920), interp=Image.BICUBIC),
         ])
+        self.focus_series = focus_series
 
 
     def __len__(self):
@@ -74,6 +75,8 @@ class FlowEvalDetectron(Dataset):
         #PosixPath to string
         flow_file_path = str(flow_dir)
         number_str = flow_file_path.split('/')[-1].split('.')[0]
+        if self.focus_series is not None:
+            number_str = self.focus_series
         number_int = int(number_str)
         path_prefix_list = flow_file_path.split('/')[:3] +["Traj"] +flow_file_path.split('/')[4:-1]
         path_prefix = '/'.join(path_prefix_list)
@@ -91,7 +94,7 @@ class FlowEvalDetectron(Dataset):
             raise ValueError(f"Trajectory file not found: {traj_visibility_file_path}")
         
         video_length = traj_tracks.shape[1]
-        sub_video_length = 11
+        sub_video_length = 20
         start_frame = number_int - sub_video_length//2
         end_frame = number_int + sub_video_length//2
         if start_frame < 0:

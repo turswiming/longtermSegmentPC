@@ -49,7 +49,20 @@ def load_flow_tensor(path, resize=None, normalize=True, align_corners=True):
 
 
 class FlowPairDetectron(Dataset):
-    def __init__(self, data_dir, resolution, to_rgb=False, size_divisibility=None, enable_photo_aug=False, flow_clip=1., norm=True, read_big=True, force1080p=False, flow_res=None):
+    def __init__(
+            self, 
+            data_dir, 
+            resolution, 
+            to_rgb=False, 
+            size_divisibility=None, 
+            enable_photo_aug=False, 
+            flow_clip=1., 
+            norm=True, 
+            read_big=True, 
+            force1080p=False, 
+            flow_res=None,
+            focus_series = None
+            ):
         self.eval = eval
         self.to_rgb = to_rgb
         self.data_dir = data_dir
@@ -75,6 +88,7 @@ class FlowPairDetectron(Dataset):
                 DT.Resize((1088, 1920), interp=Image.BICUBIC),
             ])
         self.big_flow_resolution = flow_res
+        self.focus_series = focus_series
 
     def __len__(self):
         return sum([cat.shape[0] for cat in next(iter(self.flow_dir.values()))]) if len(
@@ -104,6 +118,8 @@ class FlowPairDetectron(Dataset):
         # traj path should be ../data/DAVIS2016/Traj/480p/bear_tracks.npy
         flow_file_path = str(flos[0])
         number_str = flow_file_path.split('/')[-1].split('.')[0]
+        if self.focus_series is not None:
+            number_str = self.focus_series
         number_int = int(number_str)
         path_prefix_list = flow_file_path.split('/')[:3] +["Traj"] +flow_file_path.split('/')[4:-1]
         path_prefix = '/'.join(path_prefix_list)
@@ -121,7 +137,7 @@ class FlowPairDetectron(Dataset):
             raise ValueError(f"Trajectory file not found: {traj_visibility_file_path}")
         
         video_length = traj_tracks.shape[1]
-        sub_video_length = 11
+        sub_video_length = 20
         start_frame = number_int - sub_video_length//2
         end_frame = number_int + sub_video_length//2
         if start_frame < 0:
@@ -137,8 +153,6 @@ class FlowPairDetectron(Dataset):
         traj_tracks[:,:,1] = traj_tracks[:,:,1]/h
 
         abs_index = number_int - start_frame
-
-        number = str(flos[0]).split('/')[-1].split('.')[0]
 
 
 
@@ -180,7 +194,20 @@ class FlowPairDetectron(Dataset):
                 sem_seg_gt = (sem_seg_gt > 128).astype(int)
         else:
             sem_seg_gt = np.zeros((self.resolution[0], self.resolution[1]))
+        
 
+        if gt_dir.exists():
+            sem_seg_gt_ori = d2_utils.read_image(gt_dir)
+            sem_seg_gt = preprocessing_transforms.apply_segmentation(sem_seg_gt_ori)
+            if sem_seg_gt.ndim == 3:
+                sem_seg_gt = sem_seg_gt[:, :, 0]
+                sem_seg_gt_ori = sem_seg_gt_ori[:, :, 0]
+            if sem_seg_gt.max() == 255:
+                sem_seg_gt = (sem_seg_gt > 128).astype(int)
+                sem_seg_gt_ori = (sem_seg_gt_ori > 128).astype(int)
+        else:
+            sem_seg_gt = np.zeros((self.resolution[0], self.resolution[1]))
+            sem_seg_gt_ori = np.zeros((original_rgb.shape[-2], original_rgb.shape[-1]))
 
         gwm_dir = (Path(str(self.data_dir[2]).replace('Annotations', 'gwm')) / dname / fname).with_suffix('.png')
         if gwm_dir.exists():
@@ -256,6 +283,7 @@ class FlowPairDetectron(Dataset):
                 rgb_aug = F.pad(rgb_aug, padding_size, value=128).contiguous()
             if sem_seg_gt is not None:
                 sem_seg_gt = F.pad(sem_seg_gt, padding_size, value=self.ignore_label).contiguous()
+                sem_seg_gt_ori = torch.as_tensor(sem_seg_gt_ori.astype("long"))
             if gwm_seg_gt is not None:
                 gwm_seg_gt = F.pad(gwm_seg_gt, padding_size, value=self.ignore_label).contiguous()
 
@@ -266,6 +294,7 @@ class FlowPairDetectron(Dataset):
         # Therefore it's important to use torch.Tensor.
         dataset_dict["flow"] = flo0
         dataset_dict["flow_2"] = flo1
+        dataset_dict["category"] = str(gt_dir).split('/')[-2:]
 
 
         dataset_dict["traj_tracks"] = traj_tracks
@@ -285,6 +314,7 @@ class FlowPairDetectron(Dataset):
 
         if sem_seg_gt is not None:
             dataset_dict["sem_seg"] = sem_seg_gt.long()
+            dataset_dict["sem_seg_ori"] = sem_seg_gt_ori.long()
 
         if gwm_seg_gt is not None:
             dataset_dict["gwm_seg"] = gwm_seg_gt.long()

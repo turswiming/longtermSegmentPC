@@ -59,8 +59,9 @@ class TrajectoryLoss:
                     _, S, _ = torch.svd(Pk)
                 except RuntimeError:
                     S = torch.zeros(min(Pk.shape), device=Pk.device)
-                
-                seg_loss = torch.sum(S[self.r:])
+                T_size = series_length
+                N_size = num_tracks
+                seg_loss = torch.sum(S[self.r:min(2*T_size, N_size)])
                 # in some condition, the series length may not stable, 
                 # so we divide it to make loss stable
                 seg_loss /= series_length 

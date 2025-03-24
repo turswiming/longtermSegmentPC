@@ -71,10 +71,13 @@ def setup_dataset(cfg=None, multi_val=False):
         gt_dir = '/DAVIS2016/Annotations/480p'
 
         val_flow_dir = '/DAVIS2016/Flows_gap1/480p'
-        # val_seq = ['dog', 'cows', 'goat', 'camel', 'libby', 'parkour', 'soapbox', 'blackswan', 'bmx-trees',
-        #            'kite-surf', 'car-shadow', 'breakdance', 'dance-twirl', 'scooter-black', 'drift-chicane',
-        #            'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
-        val_seq = ['car-shadow']
+        val_seq = ['dog', 'cows', 'goat', 'camel', 'libby', 'parkour', 'soapbox', 'blackswan', 'bmx-trees',
+                   'kite-surf', 'car-shadow', 'breakdance', 'dance-twirl', 'scooter-black', 'drift-chicane',
+                   'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
+        # val_seq = ['car-shadow']
+        val_seq = ['blackswan', 'bmx-trees', 'breakdance', 'camel', 'car-roundabout', 'car-shadow', 'cows', 'dance-twirl',
+                   'dog', 'drift-chicane', 'drift-straight', 'goat', 'horsejump-high', 'kite-surf', 'libby', 'motocross-jump',
+                   'paragliding-launch', 'parkour', 'scooter-black', 'soapbox']
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
     elif cfg.GWM.DATASET == "MOVI_F":
@@ -140,8 +143,8 @@ def setup_dataset(cfg=None, multi_val=False):
 
     # flow_dir is a dictionary, with keys indicating the flow gap, and each value is a list of sequence names,
     # each item then is an array with Nx2, N indicates the number of available pairs.
-
-    flow_dir = scan_train_flow(folders, res, pairs, basepath)
+    train_folder = [s for s in folders if s in val_seq]
+    flow_dir = scan_train_flow(train_folder, res, pairs, basepath)
     data_dir = [flow_dir, img_dir, gt_dir]
 
     force1080p = ('DAVIS' not in cfg.GWM.DATASET) and 'RGB_BIG' in cfg.GWM.SAMPLE_KEYS
@@ -157,7 +160,8 @@ def setup_dataset(cfg=None, multi_val=False):
                                       norm=cfg.GWM.FLOW_NORM,
                                       force1080p=force1080p,
                                       read_big=False,
-                                      flow_res=cfg.GWM.FLOW_RES, )
+                                      flow_res=cfg.GWM.FLOW_RES,
+                                      focus_series=cfg.GWM.FOCUS_SERIES)
     if multi_val:
         print(f"Using multiple validation datasets from {val_data_dir}")
         val_dataset = [FlowEvalDetectron(data_dir=val_data_dir,
@@ -169,7 +173,8 @@ def setup_dataset(cfg=None, multi_val=False):
                                          size_divisibility=cfg.MODEL.MASK_FORMER.SIZE_DIVISIBILITY if not cfg.FLAGS.IGNORE_SIZE_DIV else -1,
                                          flow_clip=cfg.GWM.FLOW_CLIP,
                                          norm=cfg.GWM.FLOW_NORM,
-                                         force1080p=force1080p) for vs in val_seq]
+                                         force1080p=force1080p,
+                                         focus_series=cfg.GWM.FOCUS_SERIES) for vs in val_seq]
         for vs, vds in zip(val_seq, val_dataset):
             print(f"Validation dataset for {vs}: {len(vds)}")
             if len(vds) == 0:
@@ -193,7 +198,8 @@ def setup_dataset(cfg=None, multi_val=False):
                                         flow_clip=cfg.GWM.FLOW_CLIP,
                                         norm=cfg.GWM.FLOW_NORM,
                                         force1080p=force1080p,
-                                        flow_res=cfg.GWM.FLOW_RES, )
+                                        flow_res=cfg.GWM.FLOW_RES,
+                                        focus_series=cfg.GWM.FOCUS_SERIES )
                 trainval_dataset.append(tvd)
                 print(f'Seq {trainval_data_dir[0]}/{vs} dataset: {len(tvd)}')
         else:
@@ -212,7 +218,8 @@ def setup_dataset(cfg=None, multi_val=False):
                                             size_divisibility=cfg.MODEL.MASK_FORMER.SIZE_DIVISIBILITY if not cfg.FLAGS.IGNORE_SIZE_DIV else -1,
                                             flow_clip=cfg.GWM.FLOW_CLIP,
                                             norm=cfg.GWM.FLOW_NORM,
-                                            force1080p=force1080p)
+                                            force1080p=force1080p,
+                                            focus_series=cfg.GWM.FOCUS_SERIES)
                     trainval_dataset.append(tvd)
                     print(f'Seq {trainval_data_dir[0]}/{vs} dataset: {len(tvd)}')
         return train_dataset, val_dataset, trainval_dataset
@@ -226,7 +233,8 @@ def setup_dataset(cfg=None, multi_val=False):
                                     size_divisibility=cfg.MODEL.MASK_FORMER.SIZE_DIVISIBILITY if not cfg.FLAGS.IGNORE_SIZE_DIV else -1,
                                     flow_clip=cfg.GWM.FLOW_CLIP,
                                     norm=cfg.GWM.FLOW_NORM,
-                                    force1080p=force1080p)
+                                    force1080p=force1080p,
+                                    focus_series=cfg.GWM.FOCUS_SERIES)
 
     return train_dataset, val_dataset
 
@@ -329,6 +337,7 @@ def multi_loaders(cfg):
 
 def add_gwm_config(cfg):
     cfg.GWM = CN()
+    cfg.GWM.FOCUS_SERIES = None
     cfg.GWM.STABLE_SEED = False
     cfg.GWM.REBOOST_WHEN_DECREASE = False
     cfg.GWM.MODEL = "MASKFORMER"
@@ -358,6 +367,7 @@ def add_gwm_config(cfg):
     cfg.GWM.FLOW_NORM = False
 
     cfg.GWM.LOSS_MULT = CN()
+    cfg.GWM.LOSS_MULT.GLOBAL = 1.0
     cfg.GWM.LOSS_MULT.OPT = 0.1
     cfg.GWM.LOSS_MULT.TRAJ = 0.1
     cfg.GWM.LOSS_MULT.HEIR_W = [0.1, 0.3, 0.6]
