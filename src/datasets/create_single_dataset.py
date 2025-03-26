@@ -42,7 +42,7 @@ for subfolder in subfolderList:
             file_to_copy = "00008.jpg"
         for file in os.listdir(src_path):
             src_file_path = os.path.join(src_path, file_to_copy.split(".")[0]+"."+file.split(".")[1])
-            src_file_path = os.path.join(src_path, file)
+            # src_file_path = os.path.join(src_path, file)
             dest_file_path = os.path.join(dest_path, file)
             shutil.copy(src_file_path, dest_file_path)
             print("Copied file: " + src_file_path + " to " + dest_file_path)

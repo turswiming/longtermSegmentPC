@@ -68,8 +68,9 @@ class ONEMATRIX(nn.Module):
         self.bilinear = bilinear
         self.img_sizes = img_sizes
         size = img_sizes[0]*img_sizes[1]*n_classes
-        self.tensor3d = nn.Linear(1, size,bias=False)
-        init_3d_continuous_weight(self.tensor3d.weight, n_classes,img_sizes[0],img_sizes[1], n_classes)
+        # self.tensor3d = nn.Linear(1, size,bias=False)
+        self.tensor = torch.nn.Parameter(torch.randn((n_classes, img_sizes[0],img_sizes[1]),requires_grad=True))
+        #just a parameter with same size of output
         self.activation = nn.Sigmoid()
 
     @classmethod
@@ -86,9 +87,12 @@ class ONEMATRIX(nn.Module):
         images = ImageList.from_tensors(images, 0)
         # features = self.backbone(images.tensor)
         B, C, H, W = images.tensor.shape
-        outputs = self.tensor3d(torch.ones(1, 1, 1).to(self.device))
-        outputs = outputs.view(-1, self.n_classes, self.img_sizes[0], self.img_sizes[1])
+        # print("images.tensor.shape",images.tensor.shape)
+        outputs = self.tensor
         outputs = outputs.repeat(B, 1, 1, 1)
+        outputs.retain_grad()
+        #print the grad of the tensor
+        # print("outputs.shape",outputs.shape)
         outputs = self.activation(outputs)
         if get_train:
             # mask classification target

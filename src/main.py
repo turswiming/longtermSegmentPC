@@ -26,7 +26,7 @@ from ourcheckpointer import OurCheckpointer
 import subprocess
 import atexit
 
-
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 logger = utils.log.getLogger('gwm')
 
 def freeze(module, set=False):
@@ -75,7 +75,7 @@ def main(args):
     iteration = 0 if args.resume_path is None else checkpoint['iteration']
 
     train_loader, val_loader = config.loaders(cfg)
-
+    # batch size 1  batch size 1
     # overfit single batch for debug
     # sample = next(iter(loader))
 
@@ -83,7 +83,7 @@ def main(args):
         # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
         "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
         # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
-        # "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
+        "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
         }
 
     criterion = losses.CriterionDict(criterions)

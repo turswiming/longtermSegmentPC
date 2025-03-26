@@ -336,6 +336,11 @@ def multi_loaders(cfg):
 
 
 def add_gwm_config(cfg):
+    cfg.EMA = CN()
+    cfg.EMA.WARMUP_ITER = 1500
+    cfg.EMA.UPDATE_INTERVAL = 10
+    cfg.EMA.START_ITER = 500
+    cfg.EMA.WARMUP_EMA = True
     cfg.GWM = CN()
     cfg.GWM.FOCUS_SERIES = None
     cfg.GWM.STABLE_SEED = False

@@ -182,13 +182,15 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
         pass
     merger = MaskMerger(cfg, model)
 
-    print_idxs = random.sample(range(int(len(val_loader))), k=10)
+    print_idxs = random.sample(range(int(len(val_loader))), k=min(10,int(len(val_loader))))
 
     images_viz = []
     ious_davis_eval = defaultdict(list)
     ious = defaultdict(list)
 
     for idx, sample in enumerate(tqdm(val_loader)):
+        if idx not in print_idxs:
+            continue
         t = 1
         sample = [e for s in sample for e in s]
         category = [s['category'] for s in sample]
