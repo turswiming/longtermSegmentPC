@@ -245,6 +245,10 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
             writer.add_scalar('train/mIoU', frame_mean_iou, writer_iteration)
 
     logger.info(f"mIoU: {frame_mean_iou:.3f} \n")
+    #handle when nIoU is nan
+    if np.isnan(frame_mean_iou):
+        logger.info_once("mIoU is nan, setting it to 0")
+        frame_mean_iou = 0.0
     return frame_mean_iou
 
 

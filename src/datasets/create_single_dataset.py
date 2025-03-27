@@ -6,7 +6,9 @@
 import os
 import shutil
 
-val_data_list = ["car-shadow"]
+val_data_list = ['dog', 'cows', 'goat', 'camel', 'libby', 'parkour', 'soapbox', 'blackswan', 'bmx-trees',
+                   'kite-surf', 'car-shadow', 'breakdance', 'dance-twirl', 'scooter-black', 'drift-chicane',
+                   'motocross-jump', 'horsejump-high', 'drift-straight', 'car-roundabout', 'paragliding-launch']
 train_data_list = ["car-shadow"]
 
 # Define source and destination base paths
@@ -40,12 +42,19 @@ for subfolder in subfolderList:
             file_to_copy = "00007.jpg"
         elif "00008" in file_to_copy:
             file_to_copy = "00008.jpg"
-        for file in os.listdir(src_path):
+        copy_size = 0
+        copy_range = 5
+        if subfolder[-1] == "1":
+            copy_range = 3
+        for file in sorted(os.listdir(src_path)):
             src_file_path = os.path.join(src_path, file_to_copy.split(".")[0]+"."+file.split(".")[1])
             # src_file_path = os.path.join(src_path, file)
             dest_file_path = os.path.join(dest_path, file)
             shutil.copy(src_file_path, dest_file_path)
             print("Copied file: " + src_file_path + " to " + dest_file_path)
+            copy_size += 1
+            if  copy_size>=copy_range:
+                break
     
     # for data in train_data_list:
     #     src_path = os.path.join(src_base_path_val, data)

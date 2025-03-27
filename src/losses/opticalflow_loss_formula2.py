@@ -12,7 +12,7 @@ from utils.visualisation import flow2rgb_torch
 from .binary import binary
 logger = utils.log.getLogger(__name__)
 
-class OpticalFlowLoss:
+class OpticalFlowLossFormula2:
     """
     Reproduces the parametric (quadratic) flow approximation loss described in Section 3.1:
       Lf(M|F) = sum_k || Fk - F̂k ||^2_F ,  where F̂k = Ek θ̂k  and θ̂k = (Eᵀ_k E_k)^(-1) Eᵀ_k Fk
@@ -95,9 +95,9 @@ class OpticalFlowLoss:
 
                 # residual = (Fk - Fk_hat).view(-1, 2)
                 Fk_hat = Fk_hat.view(-1, 2)
-                # Fk_hat_all += Fk_hat
-                seg_loss = self.criterion(Fk_hat, Fk)
-                total_loss += seg_loss
+                Fk_hat_all += Fk_hat
+            seg_loss = self.criterion(Fk_hat_all, flow_flat_b)
+            total_loss += seg_loss
     
         total_loss = total_loss / K
         return total_loss

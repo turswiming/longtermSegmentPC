@@ -42,7 +42,33 @@ def main(args):
     cfg = setup(args)
     logger.info(f"Called as {' '.join(sys.argv)}")
     logger.info(f'Output dir {cfg.OUTPUT_DIR}')
-
+    logger.info(f'GWM.FOCUS_DATA: {cfg.GWM.FOCUS_DATA}')
+    logger.info(f'GWM.LOSS_MULT.OPT: {cfg.GWM.LOSS_MULT.OPT}')
+    logger.info(f'GWM.LOSS_MULT.TRAJ: {cfg.GWM.LOSS_MULT.TRAJ}')
+    use_opt = False
+    use_opt2 = False
+    use_traj = False
+    use_traj3 = False
+    if cfg.GWM.LOSS_MULT.OPT > 0.0:
+        use_opt =True
+    if cfg.GWM.LOSS_MULT.OPT2 > 0.0:
+        use_opt2 = True
+    if cfg.GWM.LOSS_MULT.TRAJ > 0.0:
+        use_traj = True
+    if cfg.GWM.LOSS_MULT.TRAJ3 > 0.0:
+        use_traj3 = True
+    if use_opt and use_traj:
+        ablationtype = "opt_traj_formula4"
+    elif use_opt and use_traj3:
+        ablationtype = "opt_traj_formula3"
+    elif use_opt:
+        ablationtype = "opt"
+    elif use_opt2:
+        ablationtype = "opt_formula2"
+    elif use_traj:
+        ablationtype = "traj_formula4"
+    elif use_traj3:
+        ablationtype = "traj_formula3"
     random_state = utils.random_state.PytorchRNGState(seed=cfg.SEED).to(torch.device(cfg.MODEL.DEVICE))
     random_state.seed_everything()
     utils.log.checkpoint_code(cfg.OUTPUT_DIR)
@@ -82,8 +108,10 @@ def main(args):
     criterions = {
         # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
         "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
+        "opticalflow_formula2": (losses.OpticalFlowLossFormula2(cfg, model), cfg.GWM.LOSS_MULT.OPT2*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
         # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
         "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
+        "tragectory_formula3": (losses.TrajectoryLossFormula3(cfg, model), cfg.GWM.LOSS_MULT.TRAJ3*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
         }
 
     criterion = losses.CriterionDict(criterions)
@@ -223,7 +251,7 @@ def main(args):
                     if cfg.WANDB.ENABLE:
                         wandb.log(train_log_dict, step=iteration + 1)
 
-                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [1, 50, 500]:
+                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [1, 25, 50, 100, 150, 200, 500]:
                     model.eval()
                     if writer:
                         flow = torch.stack([x['flow'].to(model.device) for x in sample]).clip(-20, 20)
@@ -252,23 +280,23 @@ def main(args):
                             wandb.log({'train/IoU_best': iou_train_best}, step=iteration + 1)
                         if writer:
                             writer.add_scalar('train/IoU_best', iou_train_best, iteration + 1)
-                    if iou := eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion,
-                                           writer=writer, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="eval"):
-                        if cfg.SOLVER.CHECKPOINT_PERIOD and iou > iou_best:
-                            iou_best = iou
-                            if not args.wandb_sweep_mode:
-                                checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
-                                                  iou=iou_best)
-                            logger.info(f'New best IoU {iou_best:.02f} after iteration {iteration + 1}')
-                        if cfg.GWM.REBOOST_WHEN_DECREASE:
-                            logger.info(f'Current IoU {iou:.02f} is less than best IoU {iou_best:.02f} after iteration {iteration + 1}')
-                            # load the last best model
-                            run_new_command(cfg,iou_best)
-                            sys.exit()
-                        if cfg.WANDB.ENABLE:
-                            wandb.log({'eval/IoU_best': iou_best}, step=iteration + 1)
-                        if writer:
-                            writer.add_scalar('eval/IoU_best', iou_best, iteration + 1)
+                    # if iou := eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion,
+                    #                        writer=writer, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="eval"):
+                    #     if cfg.SOLVER.CHECKPOINT_PERIOD and iou > iou_best:
+                    #         iou_best = iou
+                    #         if not args.wandb_sweep_mode:
+                    #             checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
+                    #                               iou=iou_best)
+                    #         logger.info(f'New best IoU {iou_best:.02f} after iteration {iteration + 1}')
+                    #     if cfg.GWM.REBOOST_WHEN_DECREASE:
+                    #         logger.info(f'Current IoU {iou:.02f} is less than best IoU {iou_best:.02f} after iteration {iteration + 1}')
+                    #         # load the last best model
+                    #         run_new_command(cfg,iou_best)
+                    #         sys.exit()
+                    #     if cfg.WANDB.ENABLE:
+                    #         wandb.log({'eval/IoU_best': iou_best}, step=iteration + 1)
+                    #     if writer:
+                    #         writer.add_scalar('eval/IoU_best', iou_best, iteration + 1)
 
 
                     model.train()
@@ -278,6 +306,11 @@ def main(args):
                 iteration += 1
                 timestart = time.time()
 
+    #this is the end of the training loop
+    #save learning rate to txt file
+    os.makedirs(f'../log/{ablationtype}', exist_ok=True)
+    with open(f'../log/{ablationtype}/{cfg.GWM.FOCUS_DATA}.txt', 'w') as f:
+        f.write(str(iou_train_best))
 
 def get_argparse_args():
     parser = ArgumentParser()
@@ -299,6 +332,8 @@ def get_argparse_args():
 
 
 if __name__ == "__main__":
+    print("sys.argv",sys.argv)
+    sys.exit(0)
     args = get_argparse_args().parse_args()
     if args.resume_path:
         args.config_file = "/".join(args.resume_path.split('/')[:-2]) + '/config.yaml'
