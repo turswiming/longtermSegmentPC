@@ -332,8 +332,6 @@ def get_argparse_args():
 
 
 if __name__ == "__main__":
-    print("sys.argv",sys.argv)
-    sys.exit(0)
     args = get_argparse_args().parse_args()
     if args.resume_path:
         args.config_file = "/".join(args.resume_path.split('/')[:-2]) + '/config.yaml'
