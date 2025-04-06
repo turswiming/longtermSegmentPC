@@ -79,7 +79,7 @@ def setup_dataset(cfg=None, multi_val=False):
                    'dog', 'drift-chicane', 'drift-straight', 'goat', 'horsejump-high', 'kite-surf', 'libby', 'motocross-jump',
                    'paragliding-launch', 'parkour', 'scooter-black', 'soapbox']
         if cfg.GWM.FOCUS_DATA is not None:
-            val_seq = [cfg.GWM.FOCUS_DATA]
+            val_seq = [str(cfg.GWM.FOCUS_DATA)]
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
     elif cfg.GWM.DATASET == "MOVI_F":
@@ -90,7 +90,7 @@ def setup_dataset(cfg=None, multi_val=False):
         val_flow_dir = "/MOVI_F/Flows_gap1/480p"
         val_seq = ["0",'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
         if cfg.GWM.FOCUS_DATA is not None:
-            val_seq = [cfg.GWM.FOCUS_DATA]
+            val_seq = [str(cfg.GWM.FOCUS_DATA)]
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
         res = "480p"
 
@@ -149,7 +149,8 @@ def setup_dataset(cfg=None, multi_val=False):
     # each item then is an array with Nx2, N indicates the number of available pairs.
     train_folder = [s for s in folders if s in val_seq]
     if cfg.GWM.FOCUS_DATA is not None:
-        train_folder = [cfg.GWM.FOCUS_DATA]
+        train_folder = [str(cfg.GWM.FOCUS_DATA)]
+
     flow_dir = scan_train_flow(train_folder, res, pairs, basepath)
     data_dir = [flow_dir, img_dir, gt_dir]
 

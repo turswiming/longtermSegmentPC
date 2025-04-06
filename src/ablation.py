@@ -1,8 +1,6 @@
 import os
 import subprocess
-val = ['blackswan',"car-shadow", 'bmx-trees', 'breakdance', 'camel', 'car-roundabout', 'cows', 'dance-twirl',
-        'dog', 'drift-chicane', 'drift-straight', 'goat', 'horsejump-high', 'kite-surf', 'libby', 'motocross-jump',
-        'paragliding-launch', 'parkour', 'scooter-black', 'soapbox']
+val = ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"]
 
 learning_rate = [(0.0,0.03,0.0,0.0),(0.03,0.0,0.0,0.0),(0.03,0.0,0.00005,0.0),(0.03,0.0,0.0,0.00005),(0.0,0.0,0.00005,0.0),(0.0,0.0,0.0,0.00005)]
 
