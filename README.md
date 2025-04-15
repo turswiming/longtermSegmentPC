@@ -13,7 +13,7 @@ pip install kornia jupyter tensorboard timm einops scikit-learn scikit-image ope
 pip install cvbase opencv-python wandb
 ```
 
-to install detectron2 from source, we need to use this command, don`t use commands list 
+to install detectron2 from source, we need to use this command, remember to add `--no-build-isolation`
 ```bash
 pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
 ```
@@ -103,5 +103,5 @@ Evaluation scripts are provided as [`eval-vid_segmentation.ipynb`](src/eval-vid_
 
 ### Acknowledgements
 
-This repository builds on [MaskFormer](https://github.com/facebookresearch/MaskFormer), [MotionGrouping](https://github.com/charigyang/motiongrouping), [unsupervised-image-segmentation](https://github.com/lukemelas/unsupervised-image-segmentation), and [dino-vit-features](https://github.com/ShirAmir/dino-vit-features),[guess-what-move](https://github.com/karazijal/guess-what-moves).
+This repository builds on [MaskFormer](https://github.com/facebookresearch/MaskFormer), [MotionGrouping](https://github.com/charigyang/motiongrouping), [unsupervised-image-segmentation](https://github.com/lukemelas/unsupervised-image-segmentation), [dino-vit-features](https://github.com/ShirAmir/dino-vit-features), and expecially, [guess-what-move](https://github.com/karazijal/guess-what-moves).
 
