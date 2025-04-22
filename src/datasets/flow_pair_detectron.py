@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 import logging
 from utils.data import read_flow, read_flo
 import os
-
+from .gen_point_traj_flow import get_traj_flow_pointcloud
 
 def load_flow_tensor(path, resize=None, normalize=True, align_corners=True):
     """
@@ -304,14 +304,21 @@ class FlowPairDetectron(Dataset):
                 gwm_seg_gt = F.pad(gwm_seg_gt, padding_size, value=self.ignore_label).contiguous()
 
         image_shape = (rgb.shape[-2], rgb.shape[-1])  # h, w
-
+        flow_dir_list = str(flos[0]).split('/')
+        dataset_path = '/'.join(flow_dir_list[:-4])
+        traj_3d,scene_flow, pointcloud = get_traj_flow_pointcloud(dataset_path, flow_dir_list[-2], number_str)
+        traj_3d = torch.tensor(traj_3d)
+        scene_flow = torch.tensor(scene_flow)
+        pointcloud = torch.tensor(pointcloud)
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["flow"] = flo0
         dataset_dict["flow_2"] = flo1
         dataset_dict["category"] = str(gt_dir).split('/')[-2:]
-
+        dataset_dict["pointcloud"] = pointcloud
+        dataset_dict["scene_flow"] = scene_flow
+        dataset_dict["traj_3d"] = traj_3d
 
         dataset_dict["traj_tracks"] = traj_tracks
         dataset_dict["traj_visibility"] = traj_visibility
