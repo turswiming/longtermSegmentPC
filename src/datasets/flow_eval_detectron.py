@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
 from utils.data import read_flow
-
+from .gen_point_traj_flow import process_one_sample
 
 class FlowEvalDetectron(Dataset):
     def __init__(self, data_dir, resolution, pair_list, val_seq, to_rgb=False, with_rgb=False, size_divisibility=None,
@@ -114,6 +114,14 @@ class FlowEvalDetectron(Dataset):
         suffix = '.png' if 'CLEVR' in self.samples[idx] else '.jpg'
         rgb_dir = (self.data_dir[1] / self.samples[idx]).with_suffix(suffix)
         gt_dir = (self.data_dir[2] / self.samples[idx]).with_suffix('.png')
+        # ../data/MOVI_F/JPEGImages/480p/15/00023.jpg
+        rgb_dir_list = str(rgb_dir).split('/')
+        rgb_dir_list[-1] = f"{number_int:05d}.jpg"
+        rgb_dir = '/'.join(rgb_dir_list)
+        # ../data/MOVI_F/Annotations/480p/15/00023.png
+        gt_dir_list = str(gt_dir).split('/')
+        gt_dir_list[-1] = f"{number_int:05d}.png"
+        gt_dir = '/'.join(gt_dir_list)
 
         rgb = d2_utils.read_image(str(rgb_dir)).astype(np.float32)
         original_rgb = torch.as_tensor(np.ascontiguousarray(np.transpose(rgb, (2, 0, 1)).clip(0., 255.))).float()

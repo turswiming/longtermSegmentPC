@@ -109,6 +109,22 @@ class FlowPairDetectron(Dataset):
         suffix = '.png' if 'CLEVR' in fname else '.jpg'
         rgb_dir = (self.data_dir[1] / dname / fname).with_suffix(suffix)
         gt_dir = (self.data_dir[2] / dname / fname).with_suffix('.png')
+        rgb_dir_list = str(rgb_dir).split('/')
+        rgb_dir_list[-1] = f"{number_int:05d}.jpg"
+        rgb_dir = '/'.join(rgb_dir_list)
+        # ../data/MOVI_F/Annotations/480p/15/00023.png
+        gt_dir_list = str(gt_dir).split('/')
+        gt_dir_list[-1] = f"{number_int:05d}.png"
+        gt_dir = '/'.join(gt_dir_list)
+        flo0_path = str(flos[0])
+        flo1_path = str(flos[1])
+        # ../data/MOVI_F/Flows_gap1/480p/15/00023.flo
+        flo0_path_list = str(flo0_path).split('/')
+        flo0_path_list[-1] = f"{number_int:05d}.flo"
+        flo0_path = '/'.join(flo0_path_list)
+        flo1_path_list = str(flo1_path).split('/')
+        flo1_path_list[-1] = f"{number_int:05d}.flo"
+        flo1_path = '/'.join(flo1_path_list)
         flo0_ori, h, w = read_flow(str(flos[0]), self.resolution, self.to_rgb)
         flo1_ori, _, _ = read_flow(str(flos[1]), self.resolution, self.to_rgb)
         flo0 = einops.rearrange(flo0_ori, 'c h w -> h w c')
