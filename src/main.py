@@ -138,7 +138,6 @@ def main(args):
     iou_best = args.iou_best
     iou_train_best = args.iou_best
     timestart = time.time()
-    dilate_kernel = torch.ones((2, 2), device=model.device)
 
     total_iter = cfg.TOTAL_ITER if cfg.TOTAL_ITER else cfg.SOLVER.MAX_ITER  # early stop
     with torch.autograd.set_detect_anomaly(cfg.DEBUG) and \
