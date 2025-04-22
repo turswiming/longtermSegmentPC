@@ -109,6 +109,11 @@ class FlowPairDetectron(Dataset):
         suffix = '.png' if 'CLEVR' in fname else '.jpg'
         rgb_dir = (self.data_dir[1] / dname / fname).with_suffix(suffix)
         gt_dir = (self.data_dir[2] / dname / fname).with_suffix('.png')
+        flow_file_path = str(flos[0])
+        number_str = flow_file_path.split('/')[-1].split('.')[0]
+        if self.focus_series is not None:
+            number_str = self.focus_series
+        number_int = int(number_str)
         rgb_dir_list = str(rgb_dir).split('/')
         rgb_dir_list[-1] = f"{number_int:05d}.jpg"
         rgb_dir = '/'.join(rgb_dir_list)
@@ -131,12 +136,7 @@ class FlowPairDetectron(Dataset):
         flo1 = einops.rearrange(flo1_ori, 'c h w -> h w c')
 
         # print(str(flos[0])) #../data/DAVIS2016/Flows_gap1/480p/bear/00006.flo
-        # traj path should be ../data/DAVIS2016/Traj/480p/bear_tracks.npy
-        flow_file_path = str(flos[0])
-        number_str = flow_file_path.split('/')[-1].split('.')[0]
-        if self.focus_series is not None:
-            number_str = self.focus_series
-        number_int = int(number_str)
+        # traj path should be ../data/DAVIS2016/Traj/480p/bear_tracks.npy        
         path_prefix_list = flow_file_path.split('/')[:3] +["Traj"] +flow_file_path.split('/')[4:-1]
         path_prefix = '/'.join(path_prefix_list)
         # traj_tracks.shape (1, 40, 900, 2) [1, frame_length, num_tracks, 2]
@@ -200,7 +200,7 @@ class FlowPairDetectron(Dataset):
         rgb = rgb.clip(0., 255.)
         # print('here', rgb.min(), rgb.max())
         d2_utils.check_image_size(dataset_dict, flo0)
-        if gt_dir.exists():
+        if os.path.exists(gt_dir):
             sem_seg_gt = d2_utils.read_image(str(gt_dir))
             sem_seg_gt = preprocessing_transforms.apply_segmentation(sem_seg_gt)
             # sem_seg_gt = cv2.resize(sem_seg_gt, (self.resolution[1], self.resolution[0]), interpolation=cv2.INTER_NEAREST)
@@ -212,7 +212,7 @@ class FlowPairDetectron(Dataset):
             sem_seg_gt = np.zeros((self.resolution[0], self.resolution[1]))
         
 
-        if gt_dir.exists():
+        if os.path.exists(gt_dir):
             sem_seg_gt_ori = d2_utils.read_image(gt_dir)
             sem_seg_gt = preprocessing_transforms.apply_segmentation(sem_seg_gt_ori)
             if sem_seg_gt.ndim == 3:

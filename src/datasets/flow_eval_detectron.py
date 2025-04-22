@@ -140,7 +140,7 @@ class FlowEvalDetectron(Dataset):
         rgb = rgb.clip(0., 255.)
         d2_utils.check_image_size(dataset_dict, flo)
 
-        if gt_dir.exists():
+        if os.path.exists(gt_dir):
             sem_seg_gt_ori = d2_utils.read_image(gt_dir)
             sem_seg_gt = preprocessing_transforms.apply_segmentation(sem_seg_gt_ori)
             if sem_seg_gt.ndim == 3:
