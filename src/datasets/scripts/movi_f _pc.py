@@ -1,0 +1,88 @@
+import os
+from PIL import Image
+import numpy as np
+from tqdm import tqdm
+
+origin_path = "/home/lzq/workspace/movi-f/outputs"
+save_path = "/home/lzq/workspace/guess-what-moves/data/MOVI_F"
+
+annotation_save_dir = os.path.join(save_path, "Annotations/480p")
+JPEGImages_save_dir = os.path.join(save_path,"JPEGImages/480p")
+FlowImagesdir1_save_dir = os.path.join(save_path,"FlowImages_gap-1/480p")
+FlowImagesdir2_save_dir = os.path.join(save_path,"FlowImages_gap1/480p")
+Flowdir1_save_dir = os.path.join(save_path,"Flows_gap-1/480p")
+Flowdir2_save_dir = os.path.join(save_path,"Flows_gap1/480p")
+metadata_save_dir = os.path.join(save_path,"metadata/480p")
+depth_save_dir = os.path.join(save_path,"Depth/480p")
+def save_flo(image, filename):
+    TAG_FLOAT = 202021.25
+
+    flow = image
+    #drop the last channel
+    flow = flow[:,:,:2]
+    h, w, c = flow.shape
+    assert c == 2, "Flow must have shape (H, W, 2)"
+
+    with open(filename, 'wb') as f:
+        np.array(TAG_FLOAT, dtype=np.float32).tofile(f)
+        np.array(w, dtype=np.int32).tofile(f)
+        np.array(h, dtype=np.int32).tofile(f)
+        flow.tofile(f)
+
+for dir_name in tqdm(os.listdir(origin_path)):
+    dir_path = os.path.join(origin_path,dir_name)
+    # if dir_name not in ["0","1"]:
+    #     continue
+    for file in os.listdir(dir_path):
+        file_path = os.path.join(dir_path,file)
+        if "rgba_"   in file_path:
+            image = Image.open(file_path).convert("RGB")
+            save_RGBA = os.path.join(JPEGImages_save_dir,dir_name,os.path.splitext(file)[0] + '.jpg').replace("rgba_","")
+            if not os.path.exists(os.path.join(JPEGImages_save_dir,dir_name)):
+                os.makedirs(os.path.join(JPEGImages_save_dir,dir_name))
+            image.save(save_RGBA)
+            pass
+        if "segmentation_" in file_path:
+            image = Image.open(file_path)
+            save_annotation = os.path.join(annotation_save_dir,dir_name,os.path.splitext(file)[0] + '.png').replace("segmentation_","")
+            if not os.path.exists(os.path.join(annotation_save_dir,dir_name)):
+                os.makedirs(os.path.join(annotation_save_dir,dir_name))
+            image.save(save_annotation)
+            pass
+        if "forward_flow_" in file_path:
+            # Load the image
+            image = Image.open(file_path)
+            #copy image to FlowImagesdir
+            if not os.path.exists(os.path.join(FlowImagesdir1_save_dir,dir_name)):
+                os.makedirs(os.path.join(FlowImagesdir1_save_dir,dir_name))
+            if not os.path.exists(os.path.join(FlowImagesdir2_save_dir,dir_name)):
+                os.makedirs(os.path.join(FlowImagesdir2_save_dir,dir_name))
+            image.save(os.path.join(FlowImagesdir1_save_dir,dir_name,os.path.splitext(file)[0] + '.jpg').replace("forward_flow_",""))
+            image.save(os.path.join(FlowImagesdir2_save_dir,dir_name,os.path.splitext(file)[0] + '.jpg').replace("forward_flow_",""))
+            # deduct 127
+            image = np.array(image, dtype=np.float32)
+            image = image - 127.0
+
+            # Save the tensor as a .flo file
+            if not os.path.exists(os.path.join(Flowdir1_save_dir,dir_name)):
+                os.makedirs(os.path.join(Flowdir1_save_dir,dir_name))
+            if not os.path.exists(os.path.join(Flowdir2_save_dir,dir_name)):
+                os.makedirs(os.path.join(Flowdir2_save_dir,dir_name))
+            flo_file_path1 = os.path.join(Flowdir1_save_dir,dir_name,os.path.splitext(file)[0] + '.flo').replace("forward_flow_","")
+            flo_file_path2 = os.path.join(Flowdir2_save_dir,dir_name,os.path.splitext(file)[0] + '.flo').replace("forward_flow_","")
+            #print the max and min in the image in three channels
+            save_flo(image, flo_file_path1)
+            save_flo(image, flo_file_path2)
+        if "metadata" in file_path:
+            save_metadata = os.path.join(metadata_save_dir,dir_name,os.path.splitext(file)[0] + '.json')
+            if not os.path.exists(os.path.join(metadata_save_dir,dir_name)):
+                os.makedirs(os.path.join(metadata_save_dir,dir_name))
+            #copy the file
+            os.system(f"cp {file_path} {save_metadata}")
+            pass
+        if "depth_" in file_path:
+            save_depth = os.path.join(depth_save_dir,dir_name,os.path.splitext(file)[0] + '.tiff').replace("depth_","")
+            if not os.path.exists(os.path.join(depth_save_dir,dir_name)):
+                os.makedirs(os.path.join(depth_save_dir,dir_name))
+            os.system(f"cp {file_path} {save_depth}")
+            pass
