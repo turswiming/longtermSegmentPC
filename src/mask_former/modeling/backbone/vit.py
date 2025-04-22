@@ -365,7 +365,7 @@ class D2ViTTransformer(Backbone):
         num_features = [int(embed_dim) for i in range(self.num_layers)]
         self.num_features = num_features
         self.frozen_stages = frozen_stages
-        self.extractor = ViTExtractor( model_type='dino_vitb8', stride = 4, model = None, device = 'cuda')
+        self.extractor = ViTExtractor( model_type='dino_vitb8', stride = 4, model = None, device = cfg.MODEL.DEVICE)
         if self.frozen_stages >= 0:
             for block_idx, block in enumerate(self.extractor.model.blocks):
                 if block_idx <= self.frozen_stages:

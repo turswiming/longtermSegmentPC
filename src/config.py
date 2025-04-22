@@ -147,7 +147,7 @@ def setup_dataset(cfg=None, multi_val=False):
 
     # flow_dir is a dictionary, with keys indicating the flow gap, and each value is a list of sequence names,
     # each item then is an array with Nx2, N indicates the number of available pairs.
-    train_folder = [s for s in folders if s in val_seq]
+    train_folder = [s for s in folders if s not in val_seq]
     if cfg.GWM.FOCUS_DATA is not None:
         train_folder = [str(cfg.GWM.FOCUS_DATA)]
 
