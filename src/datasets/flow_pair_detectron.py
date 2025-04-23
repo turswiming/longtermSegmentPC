@@ -102,14 +102,15 @@ class FlowPairDetectron(Dataset):
         flowgaps = self.flow_dir[random_gap]
         vid = random.choice(flowgaps)
         flos = random.choice(vid)
+        
         if self.focus_series is not None:
             number_str = self.focus_series
-            for flo in flos:
-                path_str = str(flo)
+            for i in range(len(flos)):
+                path_str = str(flos[i])
                 path_list = str(path_str).split('/')
                 path_list[-1] = f"{number_str}.flo"
                 flo = '/'.join(path_list)
-                flo = Path(flo)
+                flos[i] = Path(flo)
         dataset_dict = {}
         dataset_dict["flow_dir"] = str(vid[0][0])
         fname = Path(flos[0]).stem

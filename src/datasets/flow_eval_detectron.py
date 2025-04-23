@@ -239,8 +239,6 @@ class FlowEvalDetectron(Dataset):
         dataset_dict["flow_dir"] = str(flow_dir)
         # print(str(flow_dir))
         dataset_dict["original_rgb"] = F.interpolate(original_rgb[None], mode='bicubic', size=sem_seg_gt_ori.shape[-2:], align_corners=False).clip(0.,255.)[0]
-        if self.read_big:
-            dataset_dict["RGB_BIG"] = rgb_big
 
         dataset_dict["category"] = str(gt_dir).split('/')[-2:]
         dataset_dict['frame_id'] = fid
