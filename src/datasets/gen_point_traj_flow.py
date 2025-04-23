@@ -106,42 +106,6 @@ def get_object_rotation_tensors(res,num_frames,num_objects, indices_of_instance,
             object_rotation_tensor_list[frame][indices_of_instance == obj_id] = object_rotation_list_list[obj_id][frame]
     return object_rotation_tensor_list
 
-def save_trajectory(trajectory, dataset_path, frame_idx):
-    """
-    Save trajectory data to a compressed file.
-    
-    Args:
-        trajectory (np.ndarray): Trajectory data
-        dataset_path (str): Path to dataset directory
-        frame_idx (int): Frame index for saving
-    """
-    save_path = os.path.join(dataset_path, f"trajectory_{frame_idx:05d}.npz")
-    try:
-        np.savez_compressed(save_path, trajectory)
-    except Exception as e:
-        print(f"Error saving trajectory for frame {frame_idx}: {e}")
-    else:
-        print(f"Saved trajectory for frame {frame_idx} to {save_path}")
-
-def read_trajectory(dataset_path, frame_idx):
-    """
-    Read trajectory data from a compressed file.
-    
-    Args:
-        dataset_path (str): Path to dataset directory
-        frame_idx (int): Frame index for reading
-    Returns:
-        np.ndarray: Trajectory data
-    """
-    load_path = os.path.join(dataset_path, f"trajectory_{frame_idx:05d}.npz")
-    try:
-        data = np.load(load_path)
-        trajectory = data['arr_0']
-    except Exception as e:
-        print(f"Error reading trajectory for frame {frame_idx}: {e}")
-        return None
-    else:
-        return trajectory
 
 def process_one_sample(metadata_path,dep_img_path,segmentation_path, visualize=False):
     metadata = get_metadata(metadata_path)
@@ -258,3 +222,56 @@ def get_traj_flow_pointcloud(dataset_path, data_name, frame_idx):
         scene_flow = trajectory[frame_idx_int] - trajectory[frame_idx_int-1]
     point_cloud = trajectory[frame_idx_int]
     return trajectory ,scene_flow, point_cloud
+
+def process_gt(gt_path):
+    """
+    Get the ground truth data from the dataset path.
+    
+    Args:
+        gt_path (str): Path to ground truth directory
+
+    Returns:
+    tuple:
+        np.ndarray: Ground truth color data
+        np.ndarray: Instance IDs
+        np.ndarray: One-hot encoded instance IDs
+    """
+    image = cv2.imread(gt_path, cv2.IMREAD_UNCHANGED)
+    np_image = np.array(image)
+    # Convert the image to a 3D numpy array
+    np_image = np_image.reshape(-1, 3)
+    int32_image = rgb_array_to_int32(np_image)
+    unique_colors = sorted(np.unique(int32_image))
+    # Create a dictionary to map colors to instance IDs
+    color_to_instance_id = {}
+    for color in unique_colors:
+        if color not in color_to_instance_id:
+            # Assign a new instance ID to the color
+            instance_id = len(color_to_instance_id)
+            color_to_instance_id[color] = instance_id
+    # Create an array to hold the instance IDs
+    instance_ids = np.zeros_like(int32_image, dtype=np.int32)
+    # Map the colors to instance IDs
+    onehot = np.zeros((len(unique_colors), int32_image.shape[0]), dtype=np.int32)
+    for color, instance_id in color_to_instance_id.items():
+        instance_ids[int32_image == color] = instance_id
+        onehot[instance_id] = int32_image[int32_image == color]
+    
+    return np_image, instance_ids, onehot
+def get_gt(dataset_path,data_name,frame_idx):
+    """
+    Get the ground truth data from the dataset path.
+    
+    Args:
+        dataset_path (str): Path to dataset directory
+        data_name (str): Name of the data
+        frame_idx (int): Frame index for reading
+
+    tuple:
+        np.ndarray: Ground truth color data
+        np.ndarray: Instance IDs
+        np.ndarray: One-hot encoded instance IDs
+    """
+    gt_path = os.path.join(dataset_path, "Annotations","480p",data_name, f"{frame_idx}.png")
+    np_color, instance_ids, onehot = process_gt(gt_path)
+    return np_color, instance_ids, onehot
