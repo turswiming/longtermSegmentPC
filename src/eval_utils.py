@@ -221,6 +221,9 @@ def get_image_vis(model, cfg, sample, preds, criterion):
 
 
 def get_frame_vis(model, cfg, sample, preds):
+    '''
+    Not used
+    '''
     masks_pred = torch.stack([x['sem_seg'] for x in preds], 0)
     flow = torch.stack([x['flow'].to(model.device) for x in sample]).clip(-20, 20)
 
@@ -368,7 +371,7 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
         frame_mean_iou = np.nanmean(list(seq_scores.values())) * 100
 
     if "MOVI_F" in cfg.GWM.DATASET.split('+')[0]:
-        logger.info_once("Using MOVI_F evaluator methods for evaluting IoU -- mean of mean of sequences only forst frame")
+        logger.info_once("Using MOVI_F evaluator methods for evaluting IoU -- mean of mean of sequences")
         seq_scores = dict()
         for c in ious_davis_eval:
             seq_scores[c] = np.nanmean([v.item() for n, v in ious_davis_eval[c]])

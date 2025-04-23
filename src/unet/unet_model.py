@@ -67,7 +67,7 @@ class UNET(nn.Module):
             "img_sizes": cfg.GWM.RESOLUTION,
             "bilinear": cfg.MODEL.UNET.BILINEAR,
         }
-    def forward_base(self, batched_inputs, keys, get_train=False, get_eval=False, raw_sem_seg=False):
+    def forward_base(self, batched_inputs, keys, get_eval=False, raw_sem_seg=False):
             
         images = [x[keys[0]].to(self.device) for x in batched_inputs]
         images = ImageList.from_tensors(images, 0)
@@ -86,31 +86,9 @@ class UNET(nn.Module):
         logits = self.outc(x)
         outputs = logits #/ logits.sum(dim=1, keepdim=True)
 
-        if get_train:
-            # mask classification target
-            if "instances" in batched_inputs[0]:
-                gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
-                targets = self.prepare_targets(gt_instances, images)
-            else:
-                targets = None
-
-            # bipartite matching-based loss
-            losses = self.criterion(outputs, targets)
-
-            for k in list(losses.keys()):
-                if k in self.criterion.weight_dict:
-                    losses[k] *= self.criterion.weight_dict[k]
-                else:
-                    # remove this loss if not specified in `weight_dict`
-                    losses.pop(k)
-            if not get_eval:
-                return losses
             
         if get_eval:
-            # mask_cls_results = outputs["pred_logits"]
-            mask_pred_results = outputs
-            mask_cls_results = mask_pred_results
-            logger.debug_once(f"Maskformer mask_pred_results shape: {mask_pred_results.shape}")
+            logger.debug_once(f"Maskformer mask_pred_results shape: {outputs.shape}")
             # upsample masks
             # mask_pred_results = interpolate_or_crop(
             #     mask_pred_results,
@@ -120,26 +98,22 @@ class UNET(nn.Module):
             # )
 
             processed_results = []
-            for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
-                    mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+            for output, input_per_image, image_size in zip(
+                    outputs, batched_inputs, images.image_sizes
             ):
 
                 if raw_sem_seg:
-                    processed_results.append({"sem_seg": mask_pred_result})
+                    processed_results.append({"sem_seg": output})
                     continue
 
                 height = input_per_image.get("height", image_size[0])
                 width = input_per_image.get("width", image_size[1])
                 logger.debug_once(f"Maskformer mask_pred_results target HW: {height, width}")
-                r = interpolate_or_crop(mask_pred_result[None], size=(height, width), mode="bilinear", align_corners=False)[0]
-
-                processed_results.append({"sem_seg": r})
+                processed_results.append({"sem_seg": output})
 
             del outputs
 
-            if not get_train:
-                return processed_results
-        return losses, processed_results
+            return processed_results
         
     def forward(self, batched_inputs: Tuple[Dict[str, torch.Tensor]]):
         return self.forward_base(batched_inputs, keys=["image"], get_train=not self.training,
