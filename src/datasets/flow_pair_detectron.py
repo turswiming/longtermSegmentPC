@@ -306,18 +306,18 @@ class FlowPairDetectron(Dataset):
         image_shape = (rgb.shape[-2], rgb.shape[-1])  # h, w
         flow_dir_list = str(flos[0]).split('/')
         dataset_path = '/'.join(flow_dir_list[:-4])
-        traj_3d,scene_flow, pointcloud = get_traj_flow_pointcloud(dataset_path, flow_dir_list[-2], number_str)
+        traj_3d,scene_flow, point_cloud = get_traj_flow_pointcloud(dataset_path, flow_dir_list[-2], number_str)
         gt_color, instance_ids, onehot = get_gt(dataset_path, flow_dir_list[-2], number_str)
         rgb_pc  = get_rgb(dataset_path, flow_dir_list[-2], number_str)
 
         traj_3d = torch.tensor(traj_3d)
         scene_flow = torch.tensor(scene_flow)
-        pointcloud = torch.tensor(pointcloud)
+        point_cloud = torch.tensor(point_cloud)
         gt_color = torch.tensor(gt_color)
         instance_ids = torch.tensor(instance_ids)
         onehot = torch.tensor(onehot)
         rgb_pc = torch.tensor(rgb_pc)
-        pointcloud = torch.concat((pointcloud, rgb_pc), dim=1)
+        point_cloud = torch.concat((point_cloud, rgb_pc), dim=1)
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
@@ -325,7 +325,7 @@ class FlowPairDetectron(Dataset):
         dataset_dict["flow_2"] = flo1
         dataset_dict["category"] = str(gt_dir).split('/')[-2:]
         # 3d data
-        dataset_dict["pointcloud"] = pointcloud
+        dataset_dict["point_cloud"] = point_cloud
         dataset_dict["scene_flow"] = scene_flow
         dataset_dict["traj_3d"] = traj_3d
         dataset_dict["gt_color"] = gt_color

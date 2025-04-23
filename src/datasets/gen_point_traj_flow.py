@@ -255,7 +255,7 @@ def process_gt(gt_path):
     onehot = np.zeros((len(unique_colors), int32_image.shape[0]), dtype=np.int32)
     for color, instance_id in color_to_instance_id.items():
         instance_ids[int32_image == color] = instance_id
-        onehot[instance_id] = int32_image[int32_image == color]
+        onehot[instance_id][int32_image == color] = 1
     
     return np_image, instance_ids, onehot
 def get_gt(dataset_path,data_name,frame_idx):
@@ -274,6 +274,8 @@ def get_gt(dataset_path,data_name,frame_idx):
     """
     gt_path = os.path.join(dataset_path, "Annotations","480p",data_name, f"{frame_idx}.png")
     np_color, instance_ids, onehot = process_gt(gt_path)
+    np_color = np_color.astype(np.float32)
+    np_color /= 255.0
     return np_color, instance_ids, onehot
 
 def get_rgb(dataset_path,data_name,frame_idx):
@@ -293,5 +295,6 @@ def get_rgb(dataset_path,data_name,frame_idx):
     rgb = np.array(rgb)
     # Convert the image to a 3D numpy array
     rgb = rgb.reshape(-1, 3)
-    
+    rgb = rgb.astype(np.float32)
+    rgb /= 255.0
     return rgb

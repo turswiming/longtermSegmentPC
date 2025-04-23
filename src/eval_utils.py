@@ -13,6 +13,8 @@ from tqdm import tqdm
 import flow_reconstruction
 from utils import visualisation, log, grid
 from utils.vit_extractor import ViTExtractor
+import open3d as o3d
+
 label_colors = visualisation.create_label_colormap()
 logger = log.getLogger('gwm')
 
@@ -29,7 +31,7 @@ def __default_font(fontsize):
 def autosized_default_font(size_limit: float) -> ImageFont.ImageFont:
     fontsize = 1  # starting font size
     font = __default_font(fontsize)
-    while font.getbbox('test123')[1] < size_limit:
+    while font.getbbox('test123')[-1] < size_limit:
         fontsize += 1
         font = __default_font(fontsize)
     fontsize -= 1
@@ -51,7 +53,7 @@ def get_unsup_image_viz(model, cfg, sample, criterion):
         model.train()
     else:
         preds = model.forward_base(sample, keys=cfg.GWM.SAMPLE_KEYS, get_eval=True)
-    return get_image_vis(model, cfg, sample, preds, criterion)
+    return get_image_vis_pc(model, cfg, sample, preds, criterion)
 
 def get_vis_header(header_size, image_size, header_texts, header_height=20):
     W, H = (image_size, header_height)
@@ -70,6 +72,97 @@ def get_vis_header(header_size, image_size, header_texts, header_height=20):
     ret[:, :header_labels.size(1)] = header_labels
 
     return ret.permute(2, 0, 1).clip(0, 255).to(torch.uint8)
+
+def visualize_and_render_point_cloud(points, colors, width=800, height=600):
+    """
+    visualize point cloud and store as a np.array.
+
+    Args:
+        points (np.ndarray): point coord (N, 3)。
+        colors (np.ndarray): point color (N, 3), value from [0, 1]。
+        width (int): rendering window width
+        height (int): rendering window height
+
+    Returns:
+        np.array: rendered image as a numpy array
+    """
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+
+    vis = o3d.visualization.Visualizer()
+    vis.create_window(width=width, height=height, visible=False)
+    vis.add_geometry(pcd)
+
+    vis.poll_events()
+    vis.update_renderer()
+    image = vis.capture_screen_float_buffer(do_render=True)
+    vis.destroy_window()
+
+    image_np = (np.asarray(image) * 255).astype(np.uint8)
+    image_tensor = torch.from_numpy(image_np).permute(2, 0, 1)  # 转换为 (C, H, W)
+    return image_tensor
+
+def get_image_vis_pc(model, cfg, sample, preds, criterion=None):
+    '''
+    Get image visualization for point cloud
+    Parameters:
+        model: model, for inference output masks
+        cfg: global config object
+        sample: sample, the input and gt data
+        preds: predictions mask
+        criterion: criterion, don`t need it in this function, just for
+                  compatibility with get_image_vis function
+    Returns:
+        image_viz: image visualization
+        header_text: header text
+    '''
+    h ,w = cfg.VISUAILZIE.RESOLUTION
+    masks_pred = torch.stack([x['sem_seg'] for x in preds], 0)
+    masks_softmaxed = torch.softmax(masks_pred, dim=1)
+    image_vizs = []
+    with torch.no_grad():
+        for b_id in range(len(sample)):
+            header_text = []
+            image_viz = []
+            masks_softmaxed_b = masks_softmaxed[b_id]
+            point_cloud = sample[b_id]['point_cloud']
+            position = np.array(point_cloud[..., :3])
+            rgb_pc = np.array(point_cloud[..., 3:6])
+            gt_color = sample[b_id]['gt_color']
+            gt_color = np.array(gt_color)
+
+            rgb_pc_rendered = visualize_and_render_point_cloud(position, rgb_pc, width=w, height=h)
+            image_viz.append(rgb_pc_rendered)
+            header_text.append('rgb_pc')
+
+            gt_color_rendered = visualize_and_render_point_cloud(position, gt_color, width=w, height=h)
+            image_viz.append(gt_color_rendered)
+            header_text.append('gt_color')
+            # get the max value in slot dimension and set different color
+            masks_softmaxed_b = masks_softmaxed_b.reshape(masks_softmaxed_b.shape[0],-1)
+            masks = F.one_hot(masks_softmaxed_b.clone().permute(1, 0).argmax(1).cpu())
+            masks = masks.permute(1,0)
+            colored_res = np.zeros((masks_softmaxed_b.shape[1], 3), dtype=np.float32)
+            for slot_id in range(masks.shape[0]):
+                mask = masks[slot_id].cpu().numpy()
+                mask = np.concatenate([mask[..., np.newaxis], mask[..., np.newaxis], mask[..., np.newaxis]], axis=1)
+                colored_res += mask * label_colors[slot_id].cpu().numpy()/255
+
+            colored_res_rendered = visualize_and_render_point_cloud(position, colored_res, width=w, height=h)
+            image_viz.append(colored_res_rendered)
+            header_text.append("colored_res_rendered")
+            for slot_id in range(masks_softmaxed_b.shape[0]):
+                mask = masks_softmaxed_b[slot_id].cpu().numpy()
+                mask = np.concatenate([mask[..., np.newaxis], mask[..., np.newaxis], mask[..., np.newaxis]], axis=1)
+                mask_rendered = visualize_and_render_point_cloud(position, mask, width=w, height=h)
+                image_viz.append(mask_rendered)
+                header_text.append(f'slot_{slot_id}')
+            image_viz = torch.cat(image_viz, dim=2)
+            image_vizs.append(image_viz)
+        image_viz = torch.cat(image_vizs, dim=1)
+        return image_viz, header_text
+    pass
 
 def get_image_vis(model, cfg, sample, preds, criterion):
     masks_pred = torch.stack([x['sem_seg'] for x in preds], 0)
@@ -225,11 +318,12 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
         masks_raw = torch.stack([x['sem_seg'] for x in preds], 0)
 
         masks_softmaxed = torch.softmax(masks_raw, dim=1)
-        masks = merger(sample, masks_softmaxed)
+        masks = masks_softmaxed
 
         if writer and idx in print_idxs:
             flow = torch.stack([x['flow'] for x in sample]).to(model.device)
-            img_viz, header_text = get_image_vis(model, cfg, sample, preds, criterion)
+            # img_viz, header_text = get_image_vis(model, cfg, sample, preds, criterion)
+            img_viz, header_text = get_image_vis_pc(model, cfg, sample, preds, criterion)
             images_viz.append(img_viz)
 
         gt_seg = torch.stack([x['sem_seg_ori'] for x in sample]).cpu()
@@ -281,7 +375,10 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
         frame_mean_iou = np.nanmean(list(seq_scores.values())) * 100
 
     if writer:
-        header = get_vis_header(images_viz[0].size(2), flow.size(3), header_text)
+        header = get_vis_header(images_viz[0].size(2), cfg.VISUAILZIE.RESOLUTION[1], header_text)
+        print("image_viz size", len(images_viz))
+        print("header shape", header.shape)
+        # print("header_text", header_text) #header_text ['rgb', 'gt_flow', 'gt_seg', 'pred_seg', 'rec_flow', 'slot', 'slot', 'slot', 'slot']
         images_viz = torch.cat(images_viz, dim=1)
         images_viz = torch.cat([header, images_viz], dim=1)
         writer.add_image('val/images', images_viz, writer_iteration)  # C H W
