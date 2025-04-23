@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
 from utils.data import read_flow
-from .gen_point_traj_flow import get_traj_flow_pointcloud, get_gt
+from .gen_point_traj_flow import get_traj_flow_pointcloud, get_gt, get_rgb
 
 class FlowEvalDetectron(Dataset):
     def __init__(self, data_dir, resolution, pair_list, val_seq, to_rgb=False, with_rgb=False, size_divisibility=None,
@@ -211,13 +211,15 @@ class FlowEvalDetectron(Dataset):
         dataset_path = '/'.join(flow_dir_list[:-4])
         traj_3d,scene_flow, pointcloud = get_traj_flow_pointcloud(dataset_path, flow_dir_list[-2], number_str)
         gt_color, instance_ids, onehot = get_gt(dataset_path, flow_dir_list[-2], number_str)
-
+        rgb_pc  = get_rgb(dataset_path, flow_dir_list[-2], number_str)
         traj_3d = torch.tensor(traj_3d)
         scene_flow = torch.tensor(scene_flow)
         pointcloud = torch.tensor(pointcloud)
         gt_color = torch.tensor(gt_color)
         instance_ids = torch.tensor(instance_ids)
         onehot = torch.tensor(onehot)
+        rgb_pc = torch.tensor(rgb_pc)
+        pointcloud = torch.concat((pointcloud, rgb_pc), dim=1)
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
@@ -229,7 +231,7 @@ class FlowEvalDetectron(Dataset):
         dataset_dict["gt_color"] = gt_color
         dataset_dict["instance_ids"] = instance_ids
         dataset_dict["onehot"] = onehot
-        
+
         dataset_dict["traj_tracks"] = traj_tracks
         dataset_dict["traj_visibility"] = traj_visibility
         dataset_dict["abs_index"] = abs_index

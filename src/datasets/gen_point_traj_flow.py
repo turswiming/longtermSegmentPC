@@ -275,3 +275,23 @@ def get_gt(dataset_path,data_name,frame_idx):
     gt_path = os.path.join(dataset_path, "Annotations","480p",data_name, f"{frame_idx}.png")
     np_color, instance_ids, onehot = process_gt(gt_path)
     return np_color, instance_ids, onehot
+
+def get_rgb(dataset_path,data_name,frame_idx):
+    """
+    Get the RGB data from the dataset path.
+    
+    Args:
+        dataset_path (str): Path to dataset directory
+        data_name (str): Name of the data
+        frame_idx (int): Frame index for reading
+
+    Returns:
+        np.ndarray: RGB data
+    """
+    rgb_path = os.path.join(dataset_path, "JPEGImages","480p",data_name, f"{frame_idx}.jpg")
+    rgb = cv2.imread(rgb_path, cv2.IMREAD_UNCHANGED)
+    rgb = np.array(rgb)
+    # Convert the image to a 3D numpy array
+    rgb = rgb.reshape(-1, 3)
+    
+    return rgb
