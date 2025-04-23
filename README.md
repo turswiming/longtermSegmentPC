@@ -10,7 +10,7 @@ source venv/bin/activate
 ```bash
 pip install torch torchvision torchaudio
 pip install kornia jupyter tensorboard timm einops scikit-learn scikit-image openexr-python tqdm fontconfig
-pip install cvbase opencv-python wandb
+pip install cvbase opencv-python wandb open3d pyquaternion
 ```
 
 to install detectron2 from source, we need to use this command, remember to add `--no-build-isolation`
