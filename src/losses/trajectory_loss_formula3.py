@@ -59,17 +59,20 @@ class TrajectoryLossFormula3:
                     #do svd
                     U, S, V = torch.svd(Pk)
                 except RuntimeError:
-                    S = torch.zeros(min(Pk.shape), device=Pk.device)
-                #reconstruct Pk
-                U = U[:, :self.r]
-                S = S[:self.r]
-                V = V[:, :self.r]
-                Pk_hat = U @ torch.diag(S) @ V.t()
-                #calculate loss
-                seg_loss = self.criterion(Pk, Pk_hat)
-                # in some condition, the series length may not stable, 
-                # so we divide it to make loss stable
-                seg_loss /= series_length 
+                    S = torch.zeros(min(Pk.shape), device=self.device)
+                    seg_loss = torch.sum(S[self.r:])
+
+                else:
+                    #reconstruct Pk
+                    U = U[:, :self.r]
+                    S = S[:self.r]
+                    V = V[:, :self.r]
+                    Pk_hat = U @ torch.diag(S) @ V.t()
+                    #calculate loss
+                    seg_loss = self.criterion(Pk, Pk_hat)
+                    # in some condition, the series length may not stable, 
+                    # so we divide it to make loss stable
+                    seg_loss /= series_length 
                 total_loss += seg_loss
                 
 

@@ -28,7 +28,6 @@ class OpticalFlowLoss:
         # Basic coordinate grid for embedding
         self.grid_x, self.grid_y = utils.grid.get_meshgrid(cfg.GWM.RESOLUTION, model.device)
         flow_reconstruction.set_subsample_skip(cfg.GWM.HOMOGRAPHY_SUBSAMPLE, cfg.GWM.HOMOGRAPHY_SKIP)
-        self.update_grid(cfg.GWM.RESOLUTION)
         self.flow_u_low = cfg.GWM.FLOW_CLIP_U_LOW
         self.flow_u_high = cfg.GWM.FLOW_CLIP_U_HIGH
         self.flow_v_low = cfg.GWM.FLOW_CLIP_V_LOW
@@ -48,53 +47,45 @@ class OpticalFlowLoss:
         Computes the sum of the parametric reconstruction residuals over all segments.
         """
         self.it = it
-        B, _, H, W = flow.shape
-        _, K, _, _ = mask_softmaxed.shape
-        if (self.grid_x.shape[-2:] != (H, W)):
-            self.update_grid((H, W))
+        B = flow.shape[0]
+        K = mask_softmaxed.shape[1]
 
-        # Expand coords into shape (H, W, 6) for embedding
-        coords = self.construct_embedding().to(self.device) # shape (H, W, 6)
-        #convert to (HW, 6)
-        coords = coords.view(-1, 6)
-        #convert to (B, HW, 6)
-        # coords = coords.unsqueeze(0).repeat(B, 1, 1)
-        if self.cfg.GWM.FLOW_RES is not None:
-            if flow.shape[-2:] != mask_softmaxed.shape[-2:]:
-                logger.debug_once(f'Resizing predicted masks to {self.cfg.GWM.FLOW_RES}')
-                mask_softmaxed = F.interpolate(mask_softmaxed, flow.shape[-2:], mode='bilinear', align_corners=False)
-        # Flatten flow to shape (B, HW, 2)
-        flow_flat = flow.view(B, 2, -1).transpose(1, 2)
+        # point_positions shape (L, 3)
+        point_positions = [x["point_cloud"][...,:3] for x in sample]
+        scene_flows = [x["scene_flow"] for x in sample]
+        
         total_loss = 0.0
         for b in range(B):
-            flow_flat_b = flow_flat[b]  # (HW, 2)
+            coords = self.construct_embedding(point_positions[b]).to(self.device) # shape (H, W, 4)
+            scene_flow_b = scene_flows[b]  # (HW, 3)
+            scene_flow_b = scene_flow_b.to(self.device)
             mask_binary_b = mask_softmaxed[b]  # (K, HW)
-            Fk_hat_all = torch.zeros_like(flow_flat_b)  # (HW, 2)
+            Fk_hat_all = torch.zeros_like(scene_flow_b)  # (HW, 3)
             #binary mask
             for k in range(K):
                 mk = mask_binary_b[k].view(-1, 1)  # (HW, 1)
                 if mk.max() <= 1e-6:
                     continue
                 # Fk = Mk ⊙ F
-                Fk = flow_flat_b * mk
+                Fk = scene_flow_b * mk
                 # Ek = Mk ⊙ coords
                 Ek = coords * mk
 
                 # Solve for θ̂k = (Eᵀ_k E_k)^(-1) Eᵀ_k Fk
-                # Eᵀ_k E_k shape: ( 6, 6)
-                # Eᵀ_k Fk   shape: (6, 2)
+                # Eᵀ_k E_k shape: (4, 4)
+                # Eᵀ_k Fk   shape: (4, 3)
                 #transpose Ek
-                Ek_t = Ek.transpose(0, 1) # (6, HW)
+                Ek_t = Ek.transpose(0, 1) # (4, HW)
 
-                A = Ek_t @ Ek# (6, 6)
-                A = A + 1e-4 * torch.eye(6, device=A.device).unsqueeze(0)
-                b = Ek_t @ Fk # (6, 2)
-                theta_k = torch.linalg.pinv(A) @ b# (6, 2)
+                A = Ek_t @ Ek# (4, 4)
+                A = A + 1e-6 * torch.eye(4, device=A.device).unsqueeze(0)
+                b = Ek_t @ Fk # (4, 3)
+                theta_k = torch.linalg.pinv(A) @ b# (4, 3)
                 #F̂k = Ek θ̂k
-                Fk_hat = Ek @ theta_k # (HW, 2)
+                Fk_hat = Ek @ theta_k # (HW, 3)
 
-                # residual = (Fk - Fk_hat).view(-1, 2)
-                Fk_hat = Fk_hat.view(-1, 2)
+                # residual = (Fk - Fk_hat).view(-1, 3)
+                Fk_hat = Fk_hat.view(-1, 3)
                 # Fk_hat_all += Fk_hat
                 seg_loss = self.criterion(Fk_hat, Fk)
                 total_loss += seg_loss
@@ -102,22 +93,18 @@ class OpticalFlowLoss:
         total_loss = total_loss / K
         return total_loss
 
-    def update_grid(self, resolution):
-        """
-        Prepare a meshgrid for coordinate embedding: [x, x^2, y, y^2, x*y, 1].
-        resolution could be (H, W).
-        """
-        self.grid_x, self.grid_y = utils.grid.get_meshgrid(resolution, self.device)
 
-    def construct_embedding(self):
+
+    def construct_embedding(self,point_position):
         """
-        Construct the pixel coordinate embedding [x, x^2, y, y^2, x*y, 1]
-        in flattened (HW, 6) form.
+        Construct the pixel coordinate embedding [x, y, z, 1]
+        in flattened (HW, 4) form.
         """
-        x = self.grid_x  # shape (H, W)
-        y = self.grid_y  # shape (H, W)
-        # shape (H, W, 6)
-        emb = torch.stack([x, x**2, y, y**2, x*y, torch.ones_like(x)], dim=2)
+        x = point_position[...,0].view(-1)
+        y = point_position[...,1].view(-1)
+        z = point_position[...,2].view(-1)
+        # shape (L, 4)
+        emb = torch.stack([x, y, z, torch.ones_like(x)], dim=1)
         return emb
     def flow_quad(self, sample, flow, masks_softmaxed, it, **_):
         logger.debug_once(f'Reconstruction using quadratic. Masks shape {masks_softmaxed.shape} | '
