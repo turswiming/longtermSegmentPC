@@ -315,6 +315,7 @@ class FlowPairDetectron(Dataset):
         flow_dir_list = str(flos[0]).split('/')
         dataset_path = '/'.join(flow_dir_list[:-4])
         traj_3d,scene_flow, point_cloud = get_traj_flow_pointcloud(dataset_path, flow_dir_list[-2], number_str)
+        traj_3d = traj_3d[start_frame:end_frame]
         gt_color, instance_ids, onehot = get_gt(dataset_path, flow_dir_list[-2], number_str)
         rgb_pc  = get_rgb(dataset_path, flow_dir_list[-2], number_str)
 
