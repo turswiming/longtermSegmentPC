@@ -53,14 +53,18 @@ class OpticalFlowLoss_3d:
         # point_positions shape (L, 3)
         point_positions = [x["point_cloud"][...,:3] for x in sample]
         scene_flows = [x["scene_flow"] for x in sample]
-        
+        #normalize scene_flows
         total_loss = 0.0
         for b in range(B):
             coords = self.construct_embedding(point_positions[b]).to(self.device) # shape (H, W, 4)
             scene_flow_b = scene_flows[b]  # (HW, 3)
+            L, _ = scene_flow_b.shape
             scene_flow_b = scene_flow_b.to(self.device)
+            scene_flow_b = scene_flow_b.view(L * 3) # (L, 3)
+            scene_flow_b = F.normalize(scene_flow_b, p=2, dim=0)
+            scene_flow_b = scene_flow_b.view(-1, 3) # (HW, 3)
+            
             mask_binary_b = mask_softmaxed[b]  # (K, HW)
-            Fk_hat_all = torch.zeros_like(scene_flow_b)  # (HW, 3)
             #binary mask
             for k in range(K):
                 mk = mask_binary_b[k].view(-1, 1)  # (HW, 1)
