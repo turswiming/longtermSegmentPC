@@ -291,7 +291,7 @@ def convert_to_binary_mask(mask, num_slots=None):
 
     return binary_mask
 
-def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteration=0, use_wandb=False,mode='eval'):
+def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteration=0, use_wandb=False, mode='eval'):
     logger.info(f'Running Evaluation: {cfg.LOG_ID} {"Simple" if cfg.GWM.SIMPLE_REC else "Gradient"}:')
     logger.info(f'Model mode: {"train" if model.training else "eval"}, wandb: {use_wandb}')
     logger.info(f'Dataset: {cfg.GWM.DATASET} # components: {cfg.MODEL.MASK_FORMER.NUM_OBJECT_QUERIES}')
@@ -311,6 +311,7 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
     ious = defaultdict(list)
     slots_davis_eval = defaultdict(list)
     slots = defaultdict(list)
+    
     for idx, sample in enumerate(tqdm(val_loader)):
         if idx not in print_idxs:
             continue
@@ -332,50 +333,59 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
         gt_seg = torch.stack([x['sem_seg_ori'] for x in sample]).cpu()
         HW = gt_seg.shape[-2:]
         if HW != masks.shape[-2:]:
-            logger.info_once(f"Upsampling predicted masks to {HW} for evaluation")
             masks_softmaxed_sel = F.interpolate(masks.detach().cpu(), size=HW, mode='bilinear', align_corners=False)
         else:
             masks_softmaxed_sel = masks.detach().cpu()
         masks_ = einops.rearrange(masks_softmaxed_sel, '(b t) s h w -> b t s 1 h w', t=t).detach()
         gt_seg = einops.rearrange(gt_seg, 'b h w -> b 1 h w').float()
+        
         for i in range(masks_.size(0)):
             masks_k = F.interpolate(masks_[i], size=(1, gt_seg.shape[-2], gt_seg.shape[-1]))  # t s 1 h w
             mask_iou = iou(masks_k[:, :, 0], gt_seg[i, 0], thres=0.5)  # t s
+            
             if "MOVI_F" in cfg.GWM.DATASET.split('+')[0]:
-                #convert from mask with different color to binary mask with c slot, c is the number of color appeared
                 gt_seg_k = convert_to_binary_mask(gt_seg[i,0])
                 mask_ious = []
                 for j in range(gt_seg_k.shape[0]):
-                    if j == 0:
-                        continue
-                    mask_iou = iou(masks_k[:, :, 0], gt_seg_k[j], thres=0.5)
+                    mask_iou = iou(masks_k[:, :, 0], gt_seg_k[j], thres=0.5)  # t s
                     mask_ious.append(mask_iou)
-                mask_iou = torch.stack(mask_ious)
-                mask_iou = mask_iou.max(dim=1)[0].max(dim=0)[0]
-                mask_iou = mask_iou.unsqueeze(0)
-            iou_max, slot_max = mask_iou.max(dim=1)
+                
+                if mask_ious:
+                    mask_ious = torch.stack(mask_ious)  # (num_objects, t, s)
+                    best_ious_per_object = mask_ious.max(dim=2)[0]  # (num_objects, t)
+                    mean_iou_per_frame = best_ious_per_object.mean(dim=0)  # (t,)
+                    iou_max = mean_iou_per_frame.mean()
+                else:
+                    iou_max = torch.tensor(0.0)
+                
+                slot_max = torch.tensor(-1)
+                iou_max = iou_max.unsqueeze(0)
+            else:
+                iou_max, slot_max = mask_iou.max(dim=1)
 
             ious[category[i][0]].append(iou_max)
             frame_id = category[i][1]
             ious_davis_eval[category[i][0]].append((frame_id.strip().replace('.png', ''), iou_max))
             slots[category[i][0]].append(slot_max)
             slots_davis_eval[category[i][0]].append((frame_id.strip().replace('.png', ''), slot_max))
+
     frameious = sum(ious.values(), [])
     frame_mean_iou = torch.cat(frameious).sum().item() * 100 / len(frameious)
+    
     if 'DAVIS' in cfg.GWM.DATASET.split('+')[0]:
-        logger.info_once("Using DAVIS evaluator methods for evaluting IoU -- mean of mean of sequences without first frame")
         seq_scores = dict()
         for c in ious_davis_eval:
             seq_scores[c] = np.nanmean([v.item() for n, v in ious_davis_eval[c] if int(n) > 1])
-
         frame_mean_iou = np.nanmean(list(seq_scores.values())) * 100
 
     if "MOVI_F" in cfg.GWM.DATASET.split('+')[0]:
-        logger.info_once("Using MOVI_F evaluator methods for evaluting IoU -- mean of mean of sequences")
-        seq_scores = dict()
-        for c in ious_davis_eval:
-            seq_scores[c] = np.nanmean([v.item() for n, v in ious_davis_eval[c]])
-        frame_mean_iou = np.nanmean(list(seq_scores.values())) * 100
+        sum_iou = 0
+        
+        for miou in ious.values():
+            if len(miou) > 0:
+                sum_iou += torch.stack(miou).mean()
+        frame_mean_iou = sum_iou / len(ious)
+        frame_mean_iou = frame_mean_iou.item() * 100
 
     if writer:
         header = get_vis_header(images_viz[0].size(2), cfg.VISUALIZE.RESOLUTION[1], header_text)
@@ -389,10 +399,6 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
             writer.add_scalar('train/mIoU', frame_mean_iou, writer_iteration)
 
     logger.info(f"mIoU: {frame_mean_iou:.3f} \n")
-    #handle when nIoU is nan
-    if np.isnan(frame_mean_iou):
-        logger.info_once("mIoU is nan, setting it to 0")
-        frame_mean_iou = 0.0
     return frame_mean_iou
 
 
