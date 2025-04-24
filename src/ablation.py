@@ -3,7 +3,7 @@ import subprocess
 val = ["0","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"]
 
 learning_rate = [(0.0,0.03,0.0,0.0),(0.03,0.0,0.0,0.0),(0.03,0.0,0.00005,0.0),(0.03,0.0,0.0,0.00005),(0.0,0.0,0.00005,0.0),(0.0,0.0,0.0,0.00005)]
-
+learning_rate = [(0.0,0.03,0.0005,0.0),(60.00,0.0,0.0005,0.0),]
 for val_data in val:
     for lr in learning_rate:
         print(val_data, lr)
@@ -20,7 +20,9 @@ for val_data in val:
         if lr[3] > 0.0:
             use_traj3 = True
         if use_opt and use_traj:
-            ablationtype = "opt_traj_formula4"
+            ablationtype = "opt3d_traj"
+        elif use_opt2 and use_traj:
+            ablationtype = "opt2d_traj"
         elif use_opt and use_traj3:
             ablationtype = "opt_traj_formula3"
         elif use_opt:

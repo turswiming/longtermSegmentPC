@@ -1,5 +1,5 @@
 _BASE_: maskformer/maskformer_R50_bs16_160k_dino.yaml
-TOTAL_ITER: 3000
+TOTAL_ITER: 1000
 VISUALIZE:
   RESOLUTION : (512,512)
 MODEL: 
