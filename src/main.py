@@ -43,34 +43,6 @@ def main(args):
     logger.info(f"Called as {' '.join(sys.argv)}")
     logger.info(f'Output dir {cfg.OUTPUT_DIR}')
     logger.info(f'GWM.FOCUS_DATA: {cfg.GWM.FOCUS_DATA}')
-    logger.info(f'GWM.LOSS_MULT.OPT: {cfg.GWM.LOSS_MULT.OPT}')
-    logger.info(f'GWM.LOSS_MULT.TRAJ: {cfg.GWM.LOSS_MULT.TRAJ}')
-    use_opt = False
-    use_opt2 = False
-    use_traj = False
-    use_traj3 = False
-    if cfg.GWM.LOSS_MULT.OPT > 0.0:
-        use_opt =True
-    if cfg.GWM.LOSS_MULT.OPT2 > 0.0:
-        use_opt2 = True
-    if cfg.GWM.LOSS_MULT.TRAJ > 0.0:
-        use_traj = True
-    if cfg.GWM.LOSS_MULT.TRAJ3 > 0.0:
-        use_traj3 = True
-    if use_opt and use_traj:
-        ablationtype = "opt3d_traj"
-    elif use_opt2 and use_traj:
-        ablationtype = "opt2d_traj"
-    elif use_opt and use_traj3:
-        ablationtype = "opt_traj_formula3"
-    elif use_opt:
-        ablationtype = "opt"
-    elif use_opt2:
-        ablationtype = "opt_formula2"
-    elif use_traj:
-        ablationtype = "traj_formula4"
-    elif use_traj3:
-        ablationtype = "traj_formula3"
     random_state = utils.random_state.PytorchRNGState(seed=cfg.SEED).to(torch.device(cfg.MODEL.DEVICE))
     random_state.seed_everything()
     utils.log.checkpoint_code(cfg.OUTPUT_DIR)
@@ -252,7 +224,7 @@ def main(args):
                     if cfg.WANDB.ENABLE:
                         wandb.log(train_log_dict, step=iteration + 1)
 
-                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [1, 25, 50, 100, 150, 200, 500]:
+                if (iteration + 1) % cfg.LOG_FREQ == 0 or (iteration + 1) in [1, 50]:
                     model.eval()
                     if writer:
                         flow = torch.stack([x['flow'].to(model.device) for x in sample]).clip(-20, 20)
@@ -309,8 +281,8 @@ def main(args):
 
     #this is the end of the training loop
     #save learning rate to txt file
-    os.makedirs(f'../log/{ablationtype}', exist_ok=True)
-    with open(f'../log/{ablationtype}/{cfg.GWM.FOCUS_DATA}.txt', 'w') as f:
+    os.makedirs(f'../log/{cfg.ABLATION.NAME}', exist_ok=True)
+    with open(f'../log/{cfg.ABLATION.NAME}/{cfg.GWM.FOCUS_DATA}.txt', 'w') as f:
         f.write(str(iou_train_best))
 
 def get_argparse_args():

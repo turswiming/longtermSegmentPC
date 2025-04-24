@@ -343,6 +343,8 @@ def multi_loaders(cfg):
 
 
 def add_gwm_config(cfg):
+    cfg.ABLATION = CN()
+    cfg.ABLATION.NAME = 'default'
     cfg.VISUALIZE = CN()
     cfg.VISUALIZE.RESOLUTION = (96, 160)
     cfg.EMA = CN()
