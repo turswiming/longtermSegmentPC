@@ -313,8 +313,6 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
     slots = defaultdict(list)
     
     for idx, sample in enumerate(tqdm(val_loader)):
-        if idx not in print_idxs:
-            continue
         t = 1
         sample = [e for s in sample for e in s]
         category = [s['category'] for s in sample]

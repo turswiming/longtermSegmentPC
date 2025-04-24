@@ -95,7 +95,10 @@ def main(args):
             logger.error("Training dataset: empty")
             sys.exit(0)
         model.eval()
-        iou = eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion, writer=writer,
+        writer_train = writer
+        if cfg.ABLATION.NAME != "default":
+            writer_train = None
+        iou = eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion, writer=writer_train,
                            writer_iteration=iteration)
         logger.info(f"Results: iteration: {iteration} IOU = {iou}")
         return
@@ -235,9 +238,11 @@ def main(args):
                     if cfg.WANDB.ENABLE and (iteration + 1) % 2500 == 0:
                         image_viz = get_unsup_image_viz(model, cfg, sample)
                         wandb.log({'train/viz': wandb.Image(image_viz.float())}, step=iteration + 1)
-
+                    writer_train = writer
+                    if cfg.ABLATION.NAME != "default":
+                        writer_train = None
                     if iou_train := eval_unsupmf(cfg=cfg, val_loader=train_loader, model=model, criterion=criterion,
-                                           writer=writer, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="train"):
+                                           writer=writer_train, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="train"):
                         if cfg.SOLVER.CHECKPOINT_PERIOD and iou_train > iou_train_best:
                             iou_train_best = iou_train
                             if not args.wandb_sweep_mode:
