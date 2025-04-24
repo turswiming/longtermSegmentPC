@@ -3,6 +3,7 @@ from .opticalflow_loss_3d import OpticalFlowLoss_3d
 from .opticalflow_loss_formula2 import OpticalFlowLossFormula2
 from .trajectory_loss import TrajectoryLoss
 from .trajectory_loss_formula3 import TrajectoryLossFormula3
+from .trajectory_loss_3d import TrajectoryLoss_3d
 import torch
 
 
