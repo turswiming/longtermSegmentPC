@@ -109,7 +109,7 @@ def main(args):
 
     criterions = {
         # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
-        "opticalflow": (losses.OpticalFlowLoss(cfg, model), cfg.GWM.LOSS_MULT.OPT*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
+        "opticalflow": (losses.OpticalFlowLoss_3d(cfg, model), cfg.GWM.LOSS_MULT.OPT*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
         "opticalflow_formula2": (losses.OpticalFlowLossFormula2(cfg, model), cfg.GWM.LOSS_MULT.OPT2*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
         # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
         "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),

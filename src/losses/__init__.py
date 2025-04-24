@@ -1,4 +1,5 @@
-from .opticalflow_loss import OpticalFlowLoss
+from .opticalflow_loss_2d import OpticalFlowLoss_2d
+from .opticalflow_loss_3d import OpticalFlowLoss_3d
 from .opticalflow_loss_formula2 import OpticalFlowLossFormula2
 from .trajectory_loss import TrajectoryLoss
 from .trajectory_loss_formula3 import TrajectoryLossFormula3
