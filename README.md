@@ -17,6 +17,9 @@ to install detectron2 from source, we need to use this command, remember to add 
 ```bash
 pip install --no-build-isolation 'git+https://github.com/facebookresearch/detectron2.git'
 ```
+later, please install torch_Scatter, install guide can be found here  
+
+[pytorch_scatter](https://github.com/rusty1s/pytorch_scatter)
 
 #### Data Preparation
 

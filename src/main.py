@@ -78,15 +78,16 @@ def main(args):
     # batch size 1  batch size 1
     # overfit single batch for debug
     # sample = next(iter(loader))
+    criterions = {}
+    if cfg.GWM.LOSS_MULT.OPT>0.0:
+        criterions['opticalflow'] = (losses.OpticalFlowLoss_3d(cfg, model), cfg.GWM.LOSS_MULT.OPT*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1)
+    if cfg.GWM.LOSS_MULT.OPT2>0.0:
+        criterions['opticalflow_formula2'] = (losses.OpticalFlowLossFormula2(cfg, model), cfg.GWM.LOSS_MULT.OPT2*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1)
+    if cfg.GWM.LOSS_MULT.TRAJ>0.0:
+        criterions['tragectory_3d'] = (losses.TrajectoryLoss_3d(cfg, model), cfg.GWM.LOSS_MULT.TRAJ*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1)
+    if cfg.GWM.LOSS_MULT.TRAJ3>0.0:
+        criterions['tragectory_formula3'] = (losses.TrajectoryLossFormula3(cfg, model), cfg.GWM.LOSS_MULT.TRAJ3*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1)
 
-    criterions = {
-        # 'reconstruction': (losses.ReconstructionLoss(cfg, model), cfg.GWM.LOSS_MULT.REC, lambda x: 1),
-        "opticalflow": (losses.OpticalFlowLoss_3d(cfg, model), cfg.GWM.LOSS_MULT.OPT*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
-        "opticalflow_formula2": (losses.OpticalFlowLossFormula2(cfg, model), cfg.GWM.LOSS_MULT.OPT2*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
-        # "diversity": (losses.DiversityLoss(cfg, model), cfg.GWM.LOSS_MULT.DIV, lambda x: 1),
-        "tragectory": (losses.TrajectoryLoss(cfg, model), cfg.GWM.LOSS_MULT.TRAJ*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
-        # "tragectory_formula3": (losses.TrajectoryLossFormula3(cfg, model), cfg.GWM.LOSS_MULT.TRAJ3*cfg.GWM.LOSS_MULT.GLOBAL, lambda x: 1),
-        }
 
     criterion = losses.CriterionDict(criterions)
 
@@ -286,9 +287,12 @@ def main(args):
 
     #this is the end of the training loop
     #save learning rate to txt file
-    os.makedirs(f'../log/{cfg.ABLATION.NAME}', exist_ok=True)
-    with open(f'../log/{cfg.ABLATION.NAME}/{cfg.GWM.FOCUS_DATA}.txt', 'w') as f:
-        f.write(str(iou_train_best))
+    if cfg.ABLATION.RESULTSAVEPATH is not None:
+        savedir_list = cfg.ABLATION.RESULTSAVEPATH.split('/')
+        savedir = '/'.join(savedir_list[:-1])
+        os.makedirs(savedir, exist_ok=True)
+        with open(cfg.ABLATION.RESULTSAVEPATH, 'w') as f:
+            f.write(str(iou_train_best))
 
 def get_argparse_args():
     parser = ArgumentParser()
