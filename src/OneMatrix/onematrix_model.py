@@ -69,9 +69,7 @@ class ONEMATRIX(nn.Module):
         self.img_sizes = img_sizes
         size = img_sizes[0]*img_sizes[1]*n_classes
         # self.tensor3d = nn.Linear(1, size,bias=False)
-        self.tensor = torch.nn.Parameter(torch.randn((n_classes, img_sizes[0],img_sizes[1]),requires_grad=True))
-        #just a parameter with same size of output
-        self.activation = nn.Sigmoid()
+        self.linear = torch.nn.Linear(1, size)
 
     @classmethod
     def from_config(cls, cfg):
@@ -79,6 +77,7 @@ class ONEMATRIX(nn.Module):
             "n_classes": cfg.MODEL.ONEMATRIX.N_CLASSES,
             "img_sizes": cfg.GWM.RESOLUTION,
             "bilinear": cfg.MODEL.ONEMATRIX.BILINEAR,
+            
         }
     
     def forward_base(self, batched_inputs, keys, get_train=False, get_eval=False, raw_sem_seg=False):
@@ -88,59 +87,22 @@ class ONEMATRIX(nn.Module):
         # features = self.backbone(images.tensor)
         B, C, H, W = images.tensor.shape
         # print("images.tensor.shape",images.tensor.shape)
-        outputs = self.tensor
-        outputs = outputs.repeat(B, 1, 1, 1)
-        outputs.retain_grad()
-        #print the grad of the tensor
-        # print("outputs.shape",outputs.shape)
-        outputs = self.activation(outputs)
-        if get_train:
-            # mask classification target
-            if "instances" in batched_inputs[0]:
-                gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
-                targets = self.prepare_targets(gt_instances, images)
-            else:
-                targets = None
-
-            # bipartite matching-based loss
-            losses = self.criterion(outputs, targets)
-
-            for k in list(losses.keys()):
-                if k in self.criterion.weight_dict:
-                    losses[k] *= self.criterion.weight_dict[k]
-                else:
-                    # remove this loss if not specified in `weight_dict`
-                    losses.pop(k)
-            if not get_eval:
-                return losses
-            
+        outputs = self.linear(torch.ones((1)).to(self.device))
+        outputs = outputs.repeat(B,1,1,1)
+        outputs = outputs.view(B, self.n_classes, H, W)
         if get_eval:
             # mask_cls_results = outputs["pred_logits"]
-            mask_pred_results = outputs
-            mask_cls_results = mask_pred_results
-            logger.debug_once(f"OneMatrix mask_pred_results shape: {mask_pred_results.shape}")
+
+            logger.debug_once(f"OneMatrix mask_pred_results shape: {outputs.shape}")
 
             processed_results = []
-            for mask_cls_result, mask_pred_result, input_per_image, image_size in zip(
-                    mask_cls_results, mask_pred_results, batched_inputs, images.image_sizes
+            for output, output, input_per_image, image_size in zip(
+                    outputs, outputs, batched_inputs, images.image_sizes
             ):
 
-                if raw_sem_seg:
-                    processed_results.append({"sem_seg": mask_pred_result})
-                    continue
+                processed_results.append({"sem_seg": output})
 
-                height = input_per_image.get("height", image_size[0])
-                width = input_per_image.get("width", image_size[1])
-                logger.debug_once(f"Maskformer mask_pred_results target HW: {height, width}")
-                r = interpolate_or_crop(mask_pred_result[None], size=(height, width), mode="bilinear", align_corners=False)[0]
-
-                processed_results.append({"sem_seg": r})
-
-            del outputs
-
-            if not get_train:
-                return processed_results
-        return losses, processed_results
+            return processed_results
         
     def forward(self, batched_inputs: Tuple[Dict[str, torch.Tensor]]):
         return self.forward_base(batched_inputs, keys=["image"], get_train=not self.training,

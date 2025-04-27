@@ -25,7 +25,9 @@ from trainer import Trainer,setup
 from ourcheckpointer import OurCheckpointer
 import subprocess
 import atexit
+global masks_raw_prior
 
+masks_raw_prior = None
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 logger = utils.log.getLogger('gwm')
 
@@ -205,9 +207,19 @@ def main(args):
                         writer.add_scalar(k, v, iteration + 1)
 
                 optimizer.zero_grad()
-
-
+                masks_raw.retain_grad()
+                masks_softmaxed_list[0].retain_grad()
                 loss.backward()
+                global masks_raw_prior
+                if masks_raw_prior is not None:
+                    writer.add_histogram(f"masks_raw/diff", masks_raw-masks_raw_prior, iteration + 1)
+                    writer.add_scalar(f"masks_raw/diff_mean", (masks_raw-masks_raw_prior).mean(), iteration + 1)
+                    writer.add_scalar(f"masks_raw/diff_std", (masks_raw-masks_raw_prior).std(), iteration + 1)
+                writer.add_histogram(f"masks_raw/gradient", masks_raw.grad, iteration + 1)
+                writer.add_histogram(f"masks_raw/value", masks_raw, iteration + 1)
+                writer.add_histogram(f"masks_raw/softmaxed_gradient", masks_softmaxed_list[0].grad, iteration + 1)
+                writer.add_histogram(f"masks_raw/softmaxed_value", masks_softmaxed_list[0], iteration + 1)
+                masks_raw_prior = masks_raw
                 optimizer.step()
                 scheduler.step()
 

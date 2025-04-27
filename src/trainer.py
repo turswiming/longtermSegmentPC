@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Set
 
 import detectron2.utils.comm as comm
 import torch
+import torch.optim.adam
 import wandb
 from detectron2.config import get_cfg, CfgNode
 from detectron2.engine import DefaultTrainer, default_setup
@@ -122,6 +123,10 @@ class Trainer(DefaultTrainer):
             )
         elif optimizer_type == "RMSProp":
             optimizer = maybe_add_full_model_gradient_clipping(torch.optim.RMSprop)(
+                params, cfg.SOLVER.BASE_LR
+            )
+        elif optimizer_type == "ADAM":
+            optimizer = maybe_add_full_model_gradient_clipping(torch.optim.Adam)(
                 params, cfg.SOLVER.BASE_LR
             )
         else:

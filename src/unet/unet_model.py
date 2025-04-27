@@ -101,14 +101,6 @@ class UNET(nn.Module):
             for output, input_per_image, image_size in zip(
                     outputs, batched_inputs, images.image_sizes
             ):
-
-                if raw_sem_seg:
-                    processed_results.append({"sem_seg": output})
-                    continue
-
-                height = input_per_image.get("height", image_size[0])
-                width = input_per_image.get("width", image_size[1])
-                logger.debug_once(f"Maskformer mask_pred_results target HW: {height, width}")
                 processed_results.append({"sem_seg": output})
 
             del outputs
