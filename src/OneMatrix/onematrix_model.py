@@ -99,9 +99,8 @@ class ONEMATRIX(nn.Module):
             for output, output, input_per_image, image_size in zip(
                     outputs, outputs, batched_inputs, images.image_sizes
             ):
-
                 processed_results.append({"sem_seg": output})
-
+            del outputs
             return processed_results
         
     def forward(self, batched_inputs: Tuple[Dict[str, torch.Tensor]]):

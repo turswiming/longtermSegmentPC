@@ -88,14 +88,6 @@ class UNET(nn.Module):
 
             
         if get_eval:
-            logger.debug_once(f"Maskformer mask_pred_results shape: {outputs.shape}")
-            # upsample masks
-            # mask_pred_results = interpolate_or_crop(
-            #     mask_pred_results,
-            #     size=(images.tensor.shape[-2], images.tensor.shape[-1]),
-            #     mode="bilinear",
-            #     align_corners=False,
-            # )
 
             processed_results = []
             for output, input_per_image, image_size in zip(

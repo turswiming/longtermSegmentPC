@@ -66,6 +66,7 @@ class OpticalFlowLoss_3d:
             
             mask_binary_b = mask_softmaxed[b]  # (K, HW)
             #binary mask
+            Fk_hat_all = torch.zeros_like(scene_flow_b)
             for k in range(K):
                 mk = mask_binary_b[k].view(-1, 1)  # (HW, 1)
                 if mk.max() <= 1e-6:
@@ -91,8 +92,9 @@ class OpticalFlowLoss_3d:
                 # residual = (Fk - Fk_hat).view(-1, 3)
                 Fk_hat = Fk_hat.view(-1, 3)
                 # Fk_hat_all += Fk_hat
-                seg_loss = self.criterion(Fk_hat, Fk)
-                total_loss += seg_loss
+                Fk_hat_all += Fk_hat
+            seg_loss = self.criterion(Fk_hat_all, scene_flow_b)
+            total_loss += seg_loss
     
         total_loss = total_loss / K
         return total_loss

@@ -15,7 +15,6 @@ def create_label_colormap():
     A colormap for visualizing segmentation results.
   """
     colormap = np.zeros((256, 3), dtype=np.int64)
-    colormap[0] = [0, 0, 0]
     colormap[1] = [166, 206, 227]
     colormap[2] = [31, 120, 180]
     colormap[3] = [178, 223, 138]
