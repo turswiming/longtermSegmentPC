@@ -88,7 +88,7 @@ def setup_dataset(cfg=None, multi_val=False):
         gt_dir = "/MOVI_F/Annotations/480p"
 
         val_flow_dir = "/MOVI_F/Flows_gap1/480p"
-        val_seq = ["0",'1','2','3','4','5','6','7','8','9','10','11','12','13','14','15']
+        val_seq = ["0",'1','2','3','4','5']
         if cfg.GWM.FOCUS_DATA is not None:
             val_seq = [str(cfg.GWM.FOCUS_DATA)]
         val_data_dir = [val_flow_dir, img_dir, gt_dir]
@@ -428,6 +428,8 @@ def add_gwm_config(cfg):
     cfg.SKIP_TB = False
     cfg.TOTAL_ITER = 20000
     cfg.CONFIG_FILE = None
+    cfg.MENTOR_TRAIN = True
+    cfg.MENTOR_VAL = True
 
     if os.environ.get('SLURM_JOB_ID', None):
         cfg.LOG_ID = os.environ.get('SLURM_JOB_NAME', cfg.LOG_ID)

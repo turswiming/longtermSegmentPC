@@ -212,7 +212,6 @@ def main(args):
                 loss.backward()
                 global masks_raw_prior
                 if masks_raw_prior is not None:
-                    writer.add_histogram(f"masks_raw/diff", masks_raw-masks_raw_prior, iteration + 1)
                     writer.add_scalar(f"masks_raw/diff_mean", (masks_raw-masks_raw_prior).mean(), iteration + 1)
                     writer.add_scalar(f"masks_raw/diff_std", (masks_raw-masks_raw_prior).std(), iteration + 1)
                 writer.add_histogram(f"masks_raw/gradient", masks_raw.grad, iteration + 1)
@@ -254,40 +253,42 @@ def main(args):
                     writer_train = writer
                     if cfg.ABLATION.NAME != "default":
                         writer_train = None
-                    if iou_train := eval_unsupmf(cfg=cfg, val_loader=train_loader, model=model, criterion=criterion,
-                                           writer=writer_train, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="train"):
-                        if cfg.SOLVER.CHECKPOINT_PERIOD and iou_train > iou_train_best:
-                            iou_train_best = iou_train
-                            if not args.wandb_sweep_mode:
-                                checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
-                                                  iou=iou_train_best)
-                            logger.info(f'New best IoU {iou_train_best:.02f} after iteration {iteration + 1}')
-                        if cfg.GWM.REBOOST_WHEN_DECREASE:
-                            logger.info(f'Current IoU {iou_train:.02f} is less than best IoU {iou_train_best:.02f} after iteration {iteration + 1}')
-                            # load the last best model
-                            run_new_command(cfg,iou_train_best)
-                            sys.exit()
-                        if cfg.WANDB.ENABLE:
-                            wandb.log({'train/IoU_best': iou_train_best}, step=iteration + 1)
-                        if writer:
-                            writer.add_scalar('train/IoU_best', iou_train_best, iteration + 1)
-                    # if iou := eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion,
-                    #                        writer=writer, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="eval"):
-                    #     if cfg.SOLVER.CHECKPOINT_PERIOD and iou > iou_best:
-                    #         iou_best = iou
-                    #         if not args.wandb_sweep_mode:
-                    #             checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
-                    #                               iou=iou_best)
-                    #         logger.info(f'New best IoU {iou_best:.02f} after iteration {iteration + 1}')
-                    #     if cfg.GWM.REBOOST_WHEN_DECREASE:
-                    #         logger.info(f'Current IoU {iou:.02f} is less than best IoU {iou_best:.02f} after iteration {iteration + 1}')
-                    #         # load the last best model
-                    #         run_new_command(cfg,iou_best)
-                    #         sys.exit()
-                    #     if cfg.WANDB.ENABLE:
-                    #         wandb.log({'eval/IoU_best': iou_best}, step=iteration + 1)
-                    #     if writer:
-                    #         writer.add_scalar('eval/IoU_best', iou_best, iteration + 1)
+                    if cfg.MENTOR_TRAIN:
+                        if iou_train := eval_unsupmf(cfg=cfg, val_loader=train_loader, model=model, criterion=criterion,
+                                            writer=writer_train, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="train"):
+                            if cfg.SOLVER.CHECKPOINT_PERIOD and iou_train > iou_train_best:
+                                iou_train_best = iou_train
+                                if not args.wandb_sweep_mode:
+                                    checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
+                                                    iou=iou_train_best)
+                                logger.info(f'New best IoU {iou_train_best:.02f} after iteration {iteration + 1}')
+                            if cfg.GWM.REBOOST_WHEN_DECREASE:
+                                logger.info(f'Current IoU {iou_train:.02f} is less than best IoU {iou_train_best:.02f} after iteration {iteration + 1}')
+                                # load the last best model
+                                run_new_command(cfg,iou_train_best)
+                                sys.exit()
+                            if cfg.WANDB.ENABLE:
+                                wandb.log({'train/IoU_best': iou_train_best}, step=iteration + 1)
+                            if writer:
+                                writer.add_scalar('train/IoU_best', iou_train_best, iteration + 1)
+                    if cfg.MENTOR_VAL:
+                        if iou := eval_unsupmf(cfg=cfg, val_loader=val_loader, model=model, criterion=criterion,
+                                            writer=writer_train, writer_iteration=iteration + 1, use_wandb=cfg.WANDB.ENABLE,mode="eval"):
+                            if cfg.SOLVER.CHECKPOINT_PERIOD and iou > iou_best:
+                                iou_best = iou
+                                if not args.wandb_sweep_mode:
+                                    checkpointer.save(name='checkpoint_best', iteration=iteration + 1, loss=loss,
+                                                    iou=iou_best)
+                                logger.info(f'New best IoU {iou_best:.02f} after iteration {iteration + 1}')
+                            if cfg.GWM.REBOOST_WHEN_DECREASE:
+                                logger.info(f'Current IoU {iou:.02f} is less than best IoU {iou_best:.02f} after iteration {iteration + 1}')
+                                # load the last best model
+                                run_new_command(cfg,iou_best)
+                                sys.exit()
+                            if cfg.WANDB.ENABLE:
+                                wandb.log({'eval/IoU_best': iou_best}, step=iteration + 1)
+                            if writer:
+                                writer.add_scalar('eval/IoU_best', iou_best, iteration + 1)
 
 
                     model.train()
@@ -304,7 +305,7 @@ def main(args):
         savedir = '/'.join(savedir_list[:-1])
         os.makedirs(savedir, exist_ok=True)
         with open(cfg.ABLATION.RESULTSAVEPATH, 'w') as f:
-            f.write(str(iou_train_best))
+            f.write(str(iou_best))
 
 def get_argparse_args():
     parser = ArgumentParser()

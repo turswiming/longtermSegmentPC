@@ -141,11 +141,9 @@ def get_image_vis_pc(model, cfg, sample, preds, criterion=None):
             header_text.append('gt_color')
             # get the max value in slot dimension and set different color
             masks_softmaxed_b = masks_softmaxed_b.reshape(masks_softmaxed_b.shape[0],-1)
-            masks = F.one_hot(masks_softmaxed_b.clone().permute(1, 0).argmax(1).cpu())
-            masks = masks.permute(1,0)
             colored_res = np.zeros((masks_softmaxed_b.shape[1], 3), dtype=np.float32)
-            for slot_id in range(masks.shape[0]):
-                mask = masks[slot_id].cpu().numpy()
+            for slot_id in range(masks_softmaxed_b.shape[0]):
+                mask = (masks_softmaxed_b[slot_id].cpu().numpy()>0.5).astype(np.float32)
                 mask = np.concatenate([mask[..., np.newaxis], mask[..., np.newaxis], mask[..., np.newaxis]], axis=1)
                 colored_res += mask * label_colors[slot_id].cpu().numpy()/255
 
@@ -313,6 +311,8 @@ def eval_unsupmf(cfg, val_loader, model, criterion, writer=None, writer_iteratio
     slots = defaultdict(list)
     
     for idx, sample in enumerate(tqdm(val_loader)):
+        if idx not in print_idxs:
+            continue
         t = 1
         sample = [e for s in sample for e in s]
         category = [s['category'] for s in sample]

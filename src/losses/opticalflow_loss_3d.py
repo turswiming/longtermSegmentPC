@@ -10,6 +10,7 @@ import flow_reconstruction
 import utils
 from utils.visualisation import flow2rgb_torch
 from .binary import binary
+from .scalegradient import normalize_global
 logger = utils.log.getLogger(__name__)
 
 class OpticalFlowLoss_3d:
@@ -60,10 +61,7 @@ class OpticalFlowLoss_3d:
             scene_flow_b = scene_flows[b]  # (HW, 3)
             L, _ = scene_flow_b.shape
             scene_flow_b = scene_flow_b.to(self.device)
-            scene_flow_b = scene_flow_b.view(L * 3) # (L, 3)
-            scene_flow_b = F.normalize(scene_flow_b, p=2, dim=0)
-            scene_flow_b = scene_flow_b.view(-1, 3) # (HW, 3)
-            
+            scene_flow_b = normalize_global(scene_flow_b) # (HW, 3)
             mask_binary_b = mask_softmaxed[b]  # (K, HW)
             #binary mask
             Fk_hat_all = torch.zeros_like(scene_flow_b)
@@ -73,7 +71,18 @@ class OpticalFlowLoss_3d:
                     continue
                 # Fk = Mk ⊙ F
                 Fk = scene_flow_b * mk
-                # Ek = Mk ⊙ coords
+                # this shape consists loss works good, but it is another loss, add later, 
+                # don`t delete it.
+                '''
+                with torch.no_grad():
+                    mse_fk = torch.sum(torch.pow(Fk.clone().view(L * 3),2))/(L * 3)
+                    var_fk = (Fk.clone()-torch.mean(Fk)).view(L * 3).var(dim=0)
+                    print(f"mse fk {mse_fk}")
+                    print(f"variance fk {var_fk}")
+                    if var_fk.max() <= 1e-6:
+                        var_fk = torch.ones_like(var_fk)
+                Fk = ScaleGradient.apply(Fk, var_fk/mse_fk)
+                '''
                 Ek = coords * mk
 
                 # Solve for θ̂k = (Eᵀ_k E_k)^(-1) Eᵀ_k Fk
@@ -100,7 +109,7 @@ class OpticalFlowLoss_3d:
         return total_loss
 
 
-
+    @torch.no_grad()
     def construct_embedding(self,point_position):
         """
         Construct the pixel coordinate embedding [x, y, z, 1]
@@ -112,28 +121,3 @@ class OpticalFlowLoss_3d:
         # shape (L, 4)
         emb = torch.stack([x, y, z, torch.ones_like(x)], dim=1)
         return emb
-    def flow_quad(self, sample, flow, masks_softmaxed, it, **_):
-        logger.debug_once(f'Reconstruction using quadratic. Masks shape {masks_softmaxed.shape} | '
-                          f'Flow shape {flow.shape} | '
-                          f'Grid shape {self.grid_x.shape, self.grid_y.shape}')
-        return flow_reconstruction.get_quad_flow(masks_softmaxed, flow, self.grid_x, self.grid_y)
-
-    def _clipped_recon_fn(self, *args, **kwargs):
-        flow = self._recon_fn(*args, **kwargs)
-        flow_o = flow[:, :-2]
-        flow_u = flow[:, -2:-1].clip(self.flow_u_low, self.flow_u_high)
-        flow_v = flow[:, -1:].clip(self.flow_v_low, self.flow_v_high)
-        return torch.cat([flow_o, flow_u, flow_v], dim=1)
-
-    def process_flow(self, sample, flow_cuda):
-        return flow_cuda
-
-    def viz_flow(self, flow):
-        return torch.stack([flow2rgb_torch(x) for x in flow])
-    
-    def rec_flow(self, sample, flow, masks_softmaxed):
-        it = self.it
-        if self.cfg.GWM.FLOW_RES is not None and flow.shape[-2:] != self.grid_x.shape[-2:]:
-            logger.debug_once(f'Generating new grid predicted masks of {flow.shape[-2:]}')
-            self.grid_x, self.grid_y = utils.grid.get_meshgrid(flow.shape[-2:], self.device)
-        return [self._clipped_recon_fn(sample, flow, masks_softmaxed, it)]

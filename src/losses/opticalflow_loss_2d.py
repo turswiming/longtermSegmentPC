@@ -10,6 +10,8 @@ import flow_reconstruction
 import utils
 from utils.visualisation import flow2rgb_torch
 from .binary import binary
+from .scalegradient import normalize_global
+
 logger = utils.log.getLogger(__name__)
 
 class OpticalFlowLoss_2d:
@@ -68,6 +70,7 @@ class OpticalFlowLoss_2d:
         total_loss = 0.0
         for b in range(B):
             flow_flat_b = flow_flat[b]  # (HW, 2)
+            flow_flat_b = normalize_global(flow_flat_b) # (HW, 2)
             mask_binary_b = mask_softmaxed[b]  # (K, HW)
             Fk_hat_all = torch.zeros_like(flow_flat_b)  # (HW, 2)
             #binary mask
@@ -95,11 +98,9 @@ class OpticalFlowLoss_2d:
 
                 # residual = (Fk - Fk_hat).view(-1, 2)
                 Fk_hat = Fk_hat.view(-1, 2)
-                Fk_hat_all += Fk_hat
                 seg_loss = self.criterion(Fk_hat, Fk)
-            total_loss += seg_loss
+                total_loss += seg_loss
     
-        total_loss = total_loss / K
         return total_loss
 
     def update_grid(self, resolution):

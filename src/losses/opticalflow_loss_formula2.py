@@ -10,8 +10,9 @@ import flow_reconstruction
 import utils
 from utils.visualisation import flow2rgb_torch
 from .binary import binary
-logger = utils.log.getLogger(__name__)
+from .scalegradient import normalize_global
 
+logger = utils.log.getLogger(__name__)
 class OpticalFlowLossFormula2:
     """
     Reproduces the parametric (quadratic) flow approximation loss described in Section 3.1:
@@ -68,6 +69,7 @@ class OpticalFlowLossFormula2:
         total_loss = 0.0
         for b in range(B):
             flow_flat_b = flow_flat[b]  # (HW, 2)
+            flow_flat_b = normalize_global(flow_flat_b) # (HW, 2)
             mask_binary_b = mask_softmaxed[b]  # (K, HW)
             Fk_hat_all = torch.zeros_like(flow_flat_b)  # (HW, 2)
             #binary mask
@@ -99,7 +101,6 @@ class OpticalFlowLossFormula2:
             seg_loss = self.criterion(Fk_hat_all, flow_flat_b)
             total_loss += seg_loss
     
-        total_loss = total_loss / K
         return total_loss
 
     def update_grid(self, resolution):
